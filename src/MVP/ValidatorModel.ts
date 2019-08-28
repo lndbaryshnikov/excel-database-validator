@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 
-import Observer from "./Observer";
+import Observer from "../Observer";
 import removeDiacritics from "../removeDiacritics";
 import {stringify} from "querystring";
 

@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx";
 
 import {ErrorObject, Config, FullNameSheetErrors} from "./ValidatorModel";
-import Observer from "./Observer";
+import Observer from "../Observer";
 import doesHaveWhitespaces from "../doesHaveWhitespaces";
 import selfDownloadFile from "../selfDownloadFile";
 

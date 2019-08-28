@@ -4,18 +4,15 @@ const webpack = require('webpack');
 
 module.exports = {
     entry: [
-        path.join(__dirname, 'src/MVP/index.ts')
+        path.join(__dirname, 'src/index.ts')
     ],
 
     output: {
-        path: path.join(__dirname, 'distMVP'),
+        path: path.join(__dirname, 'dist'),
         filename: 'index.js'
     },
     plugins: [
         new ExtractTextPlugin('./style.css'),
-        new webpack.ProvidePlugin({
-            XLSX: 'xlsx'
-        }),
     ],
     module: {
         rules: [
