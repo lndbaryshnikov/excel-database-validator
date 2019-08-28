@@ -11,8 +11,9 @@ import {createErrorsDownloadButton} from "./domElements";
 
 const resultText = elements.createResultText();
 
-const renderErrors = async (emailErrors, root, fileName, settingsWrapper) => {
-    if ( !doesHaveErrors(emailErrors) ) {
+const renderErrors = async (errors, root) => {
+
+    if ( !doesHaveErrors(errors) ) {
         resultText.innerHTML = "Errors were not found";
 
         root.appendChild(resultText);
@@ -20,14 +21,12 @@ const renderErrors = async (emailErrors, root, fileName, settingsWrapper) => {
         return;
     }
 
-    const logText = createLogText(emailErrors, fileName);
-
     resultText.innerHTML = "Errors list:";
 
     root.appendChild(resultText);
 
-    for (let i = 0; i < emailErrors.length; i++) {
-        const currentList = emailErrors[i];
+    for (let i = 0; i < errors.length; i++) {
+        const currentList = errors[i];
 
         if ( currentList.length === 0 ) continue;
 
@@ -70,8 +69,6 @@ const renderErrors = async (emailErrors, root, fileName, settingsWrapper) => {
         }
 
     }
-    settingsWrapper.append(createErrorsDownloadButton("report.txt", logText));
-
 };
 
 export default renderErrors;

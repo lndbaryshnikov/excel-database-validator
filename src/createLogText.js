@@ -1,5 +1,9 @@
+import doesHaveErrors from "./doesHaveErrors";
+
 const createLogText = (errorArray, fileName) => {
-    let text = "Errors for \"" + fileName + "\":";
+    if ( !doesHaveErrors(errorArray) ) return false;
+
+    let text = "ValueWorkbookErrors for \"" + fileName + "\":";
 
     for (let i = 0; i < errorArray.length; i++) {
         const currentList = errorArray[i];

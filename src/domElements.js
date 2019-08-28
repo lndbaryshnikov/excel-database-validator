@@ -71,7 +71,7 @@ export const createResultText = () => {
 export const createListNumber = (number, name) => {
     const listNumber = document.createElement('div');
 
-    listNumber.setAttribute('class', 'errors-block__list-number');
+    listNumber.setAttribute('class', 'error-block__list-number');
     listNumber.innerHTML = `List No ${number} (${name})`;
 
     return listNumber;
@@ -80,7 +80,7 @@ export const createListNumber = (number, name) => {
 export const createTableCell = (text) => {
     const cell = document.createElement('td');
 
-    cell.setAttribute('class', 'errors-block__table-cell');
+    cell.setAttribute('class', 'error-block__table-cell');
     cell.innerHTML = text;
 
     return cell;
@@ -90,14 +90,14 @@ export const createTableCell = (text) => {
 export const createTable = () => {
     const table = document.createElement('table');
     table.setAttribute('border', '1px');
-    table.setAttribute('class', 'errors-block__table');
+    table.setAttribute('class', 'error-block__table');
     return table;
 };
 
 export const createTableHeader = () => {
     const tableHeader = document.createElement('tr');
 
-    tableHeader.setAttribute('class', 'errors-block__table-header');
+    tableHeader.setAttribute('class', 'error-block__table-header');
 
     appendToElem(tableHeader,
         createTableCell('No'),
@@ -112,7 +112,7 @@ export const createTableHeader = () => {
 export const createTableRow = () => {
     const tr = document.createElement('tr');
 
-    tr.setAttribute('class', 'errors-block__table-tow')
+    tr.setAttribute('class', 'error-block__table-tow')
 
     return tr;
 };
@@ -120,7 +120,7 @@ export const createTableRow = () => {
 export const createErrorsBlock = () => {
     const errorsBlock = document.createElement('div');
 
-    errorsBlock.setAttribute('class', 'errors-block');
+    errorsBlock.setAttribute('class', 'error-block');
 
     return errorsBlock;
 };
@@ -136,7 +136,7 @@ export const createPageWrapper = () => {
 export const createErrorsDownloadButton = (filename, text) => {
     const button = document.createElement('button');
 
-    button.setAttribute('class', 'errors-block__download-button button');
+    button.setAttribute('class', 'error-block__download-button button');
     button.innerHTML = 'Download Report';
 
     button.addEventListener('click', () => {
@@ -164,11 +164,11 @@ export const createOptionSelect = () => {
 
     appendToElem(select,
         createSelectOption('none', 'Choose...'),
-        createSelectOption('email', 'Email Errors'),
-        createSelectOption('phone', 'Phone Number Errors'),
-        createSelectOption('site', 'Site Address Errors'),
+        createSelectOption('email', 'Email ValueWorkbookErrors'),
+        createSelectOption('phone', 'Phone Number ValueWorkbookErrors'),
+        createSelectOption('site', 'Site Address ValueWorkbookErrors'),
         createSelectOption('ws', 'Whitespaces'),
-        createSelectOption('numbers', 'Only Numbers Errors')
+        createSelectOption('numbers', 'Only Numbers ValueWorkbookErrors')
     );
 
     return select;

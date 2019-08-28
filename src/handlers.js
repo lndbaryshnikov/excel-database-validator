@@ -1,7 +1,31 @@
 import * as XLSX from "xlsx";
 import getWorkbookErrors from "./getWorkbookErrors";
 import renderErrors from "./renderErrors";
-import {createErrorsBlock} from "./domElements";
+import {createErrorsBlock, createErrorsDownloadButton} from "./domElements";
+import createLogText from "./createLogText";
+
+const deleteElementFromDomIfItExists = (element) => {
+    const className = element.getAttribute('class');
+    const domElem = document.getElementsByClassName(className)[0];
+
+    if ( !!domElem ) {
+        domElem.remove();
+    }
+};
+
+const toggleElements = (mode, ...elements) => {
+    let result;
+
+    if ( mode === 'on' ) {
+        result = false;
+    } else if ( mode ==='off' ) {
+        result = true;
+    } else {
+        throw new Error('mode can be only "on" or "off"');
+    }
+
+    elements.forEach( element => element.disabled = result );
+};
 
 export const createHandlerForInputChange = (button, input, select, colInput) => {
     return () => {
@@ -23,48 +47,50 @@ export const createHandlerForColInput = (button, input, select, colInput) => {
 
 export const createHandlerForRunButton = (input, button, select, colInput, settingsWrapper) => {
     return () => {
-        button.disabled = true;
-        input.disabled = true;
-        select.disabled = true;
-        colInput.disabled = true;
+        // button.disabled = true;
+        // input.disabled = true;
+        // select.disabled = true;
+        // colInput.disabled = true;
 
-        const domDownloadButton = settingsWrapper.getElementsByClassName('errors-block__download-button')[0];
+        toggleElements('off', button, input, select, colInput);
 
-        if ( !!domDownloadButton ) domDownloadButton.remove();
+        deleteElementFromDomIfItExists(createErrorsDownloadButton());
 
         const config = select.value;
-
         const colNumber = Number(colInput.value);
 
-        const files = input.files, f = files[0];
+        const files = input.files, file = files[0];
         const reader = new FileReader();
 
         reader.onload = function (e) {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, {type: 'array'});
 
-            const emailErrors = getWorkbookErrors(workbook, config, colNumber);
+            const errors = getWorkbookErrors(workbook, config, colNumber);
 
-            const newErrorsBlock = createErrorsBlock();
+            const logText = createLogText(errors, file.name);
 
-            const errorsBlockClass = newErrorsBlock.getAttribute('class');
-            const domErrorsBlock = document.getElementsByClassName(errorsBlockClass)[0];
 
-            if ( !!domErrorsBlock ) {
-                domErrorsBlock.remove();
-            }
+            const errorsBlock = createErrorsBlock();
 
-            document.body.appendChild(newErrorsBlock);
+            deleteElementFromDomIfItExists(errorsBlock);
 
-            renderErrors(emailErrors, newErrorsBlock, f.name, settingsWrapper)
+            document.body.appendChild(errorsBlock);
+
+            renderErrors(errors, errorsBlock)
                 .then(() => {
                         button.disabled = false;
                         input.disabled = false;
                         select.disabled = false;
                         colInput.disabled = false;
+
+                        if ( !logText ) {
+                            settingsWrapper.append(createErrorsDownloadButton("report.txt", logText));
+                        }
+
                     },
                       null);
         };
-        reader.readAsArrayBuffer(f);
+        reader.readAsArrayBuffer(file);
     }
 };

@@ -1,0 +1,18 @@
+.file-input__wrapper {
+    height: 30px;
+    /*width: 200px;*/
+    width: 100%;
+    position: relative;
+    text-align: center;
+    line-height: 30px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+
+    -webkit-transition: background-color 1s;
+    -moz-transition: background-color 1s;
+    -ms-transition: background-color 1s;
+    -o-transition: background-color 1s;
+    transition: background-color 1s;
+}
+

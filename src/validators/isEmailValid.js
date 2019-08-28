@@ -5,3 +5,5 @@ const isEmailValid = (email) => {
 };
 
 export default isEmailValid;
+
+//console.log(isEmailValid('info@comau.com'));

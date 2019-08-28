@@ -1,8 +1,22 @@
 import * as XLSX from 'xlsx';
 import validateCellValue from "./validateCellValue";
-import isOnlyNumbersValid from "./validators/isOnlyNumbersValid";
+import FullNameMatchAndLackCheck from "./fullNameMatchAndCheck";
 
-const getSheetErrors = (sheet, sheetName, config, colNumber) => {
+const getSheetErrors = (sheet, config, colNumber) => {
+    let rowNum = 1;
+    let colNum;
+
+    if (typeof colNumber === "object") {
+        colNum = colNumber.slice(0);
+
+        for ( let i = 0; i < colNum.length; i++ ) colNum[i]--;
+
+    } else colNum =  Number(colNumber) - 1;
+
+    // if (String(config) === "fullNameMatch") {
+    //     return FullNameMatchAndLackCheck(sheet, colNum);
+    // }
+
     const range = XLSX.utils.decode_range(sheet['!ref']);
 
     const sheetErrors = [];
@@ -12,10 +26,6 @@ const getSheetErrors = (sheet, sheetName, config, colNumber) => {
 
         return;
     }
-
-    const colNum = Number(colNumber) - 1;
-
-    let rowNum = 1;
 
     for (rowNum; rowNum <= range.e.r; rowNum++) {
         const cell = sheet[
@@ -35,9 +45,14 @@ const getSheetErrors = (sheet, sheetName, config, colNumber) => {
                 row: rowNum + 1,
                 col: colNum + 1,
                 value: cellValue,
-                error: error,
-                listName: sheetName
+                error: error
             };
+
+            //console:
+            // console.log(cellValue);
+            // console.log(decodeURIComponent(encodeURIComponent(String(cellValue))));
+            // console.log(encodeURIComponent('info@comau.com'));
+            // console.log('info@comau.com' === String(cellValue));
 
             sheetErrors.push(errorObject);
         }

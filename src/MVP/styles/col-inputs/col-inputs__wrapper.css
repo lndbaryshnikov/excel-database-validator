@@ -1,0 +1,7 @@
+.col-inputs__wrapper {
+    margin-top: 20px;
+    height: 30px;
+
+    display: flex;
+    justify-content: space-between;
+}
