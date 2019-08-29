@@ -34032,74 +34032,35 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var XLSX = __importStar(__webpack_require__(/*! xlsx */ "./node_modules/xlsx/xlsx.js"));
 var Observer_1 = __importDefault(__webpack_require__(/*! ../Observer */ "./src/Observer.ts"));
 var removeDiacritics_1 = __importDefault(__webpack_require__(/*! ../removeDiacritics */ "./src/removeDiacritics.js"));
+var validators = __importStar(__webpack_require__(/*! ../ValidatorModel.private/validators */ "./src/ValidatorModel.private/validators.ts"));
+var doesHaveWhitespaces_1 = __importDefault(__webpack_require__(/*! ../doesHaveWhitespaces */ "./src/doesHaveWhitespaces.ts"));
+var getListsArray_1 = __webpack_require__(/*! ../ValidatorModel.private/getListsArray */ "./src/ValidatorModel.private/getListsArray.ts");
+var doListsFromArrayExist_1 = __webpack_require__(/*! ../ValidatorModel.private/doListsFromArrayExist */ "./src/ValidatorModel.private/doListsFromArrayExist.ts");
+var doesColExist_1 = __webpack_require__(/*! ../ValidatorModel.private/doesColExist */ "./src/ValidatorModel.private/doesColExist.ts");
+var getCell_1 = __webpack_require__(/*! ../ValidatorModel.private/getCell */ "./src/ValidatorModel.private/getCell.ts");
+var addPropertyToErrors_1 = __webpack_require__(/*! ../ValidatorModel.private/addPropertyToErrors */ "./src/ValidatorModel.private/addPropertyToErrors.ts");
 var ValidatorModel = /** @class */ (function () {
     function ValidatorModel() {
         this._validationCompletedSubject = new Observer_1.default();
+        this._configurationErrorFoundSubject = new Observer_1.default();
     }
     ValidatorModel.prototype.validateWorkbook = function (workbook) {
         var _this = this;
         var sheetNames = workbook.SheetNames;
         var workbookErrors = [];
-        var getListsArray = function (noWsListNumberFromConfig, sheetNames) {
-            //lists = [first,...., last]: first and last inclusively
-            var lists;
-            var type;
-            if (noWsListNumberFromConfig === '') {
-                lists = [1, sheetNames.length];
-                type = 'fullWorkbook';
-            }
-            if (/\d+/.test(noWsListNumberFromConfig)) {
-                lists = [Number(noWsListNumberFromConfig), Number(noWsListNumberFromConfig)];
-                type = 'singleList';
-            }
-            if (noWsListNumberFromConfig.match(/,/) !== null) {
-                var array = noWsListNumberFromConfig.split(',');
-                //CHECK THIS LATER IF LISTS HAVEN'T BECOME NUMBERS
-                lists = array.map(function (list) { return Number(list); });
-                type = 'listsCollection';
-            }
-            if (noWsListNumberFromConfig.match(/-/) !== null) {
-                if (noWsListNumberFromConfig.match(/-/).length === 1) {
-                    var array = noWsListNumberFromConfig.split('-');
-                    lists = array.map(function (list) { return Number(list); });
-                    type = 'listsRange';
-                }
-            }
-            return {
-                lists: lists,
-                type: type
-            };
-        };
-        var doListsFromArrayExist = function (listsArray, sheetNames) {
-            var createListError = function (listNumber) {
-                return "List No " + listNumber + " doesn't exist";
-            };
-            var result = true;
-            var error;
-            for (var i = 0; i < listsArray.length; i++) {
-                if (!_this._doesListExist(listsArray[i], sheetNames)) {
-                    result = false;
-                    error = createListError(listsArray[i]);
-                    break;
-                }
-            }
-            return {
-                result: result,
-                error: error
-            };
-        };
         //lists = [first,...., last]: first and last inclusively
         //lists - lists from config, not for iteration
-        var lists = getListsArray(this.config.list, sheetNames);
-        if (doListsFromArrayExist(lists.lists, sheetNames).result === false) {
-            alert(doListsFromArrayExist(lists.lists, sheetNames).error);
+        var lists = getListsArray_1.getListsArray(this.config.list, sheetNames);
+        if (doListsFromArrayExist_1.doListsFromArrayExist(lists.lists, sheetNames).result === false) {
+            var error = doListsFromArrayExist_1.doListsFromArrayExist(lists.lists, sheetNames).error;
+            this._configurationErrorFoundSubject.notifyObservers(error);
             return;
         }
         if (lists.type === 'listsCollection') {
             lists.lists.forEach(function (currentListNumber) {
                 if (_this._doColumnsExist(workbook, currentListNumber) !== true) {
                     var error = _this._doColumnsExist(workbook, currentListNumber);
-                    alert(error);
+                    _this._configurationErrorFoundSubject.notifyObservers(error);
                     return;
                 }
                 var currentListIterationNumber = currentListNumber - 1;
@@ -34115,13 +34076,13 @@ var ValidatorModel = /** @class */ (function () {
             var firstListIterationNumber = lists.lists[0] - 1;
             var lastListIterationNumber = lists.lists[lists.lists.length - 1] - 1;
             if (firstListIterationNumber > lastListIterationNumber) {
-                alert('Lists range should go from smaller to larger');
+                this._configurationErrorFoundSubject.notifyObservers('Lists range should go from smaller to larger');
                 return;
             }
             for (var currentListIterationNumber = firstListIterationNumber; currentListIterationNumber <= lastListIterationNumber; currentListIterationNumber++) {
                 if (this._doColumnsExist(workbook, currentListIterationNumber + 1) !== true) {
                     var error = this._doColumnsExist(workbook, currentListIterationNumber);
-                    alert(error);
+                    this._configurationErrorFoundSubject.notifyObservers(error);
                     return;
                 }
                 var currentSheet = workbook.Sheets[sheetNames[currentListIterationNumber]];
@@ -34149,6 +34110,11 @@ var ValidatorModel = /** @class */ (function () {
             else {
                 callback(false);
             }
+        });
+    };
+    ValidatorModel.prototype.whenConfigurationErrorFound = function (callback) {
+        this._configurationErrorFoundSubject.addObserver(function (error) {
+            callback(error);
         });
     };
     ValidatorModel.prototype.createLog = function (workbookErrors, fileName) {
@@ -34233,13 +34199,6 @@ var ValidatorModel = /** @class */ (function () {
         }
         return text;
     };
-    Object.defineProperty(ValidatorModel.prototype, "options", {
-        set: function (options) {
-            this.config = options;
-        },
-        enumerable: true,
-        configurable: true
-    });
     ValidatorModel.prototype._validateSheet = function (sheet) {
         var range = XLSX.utils.decode_range(sheet['!ref']);
         if (this.config.mode === 'fullName') {
@@ -34249,7 +34208,7 @@ var ValidatorModel = /** @class */ (function () {
         var rowForIteration = Number(this.config.row) - 1;
         var colForIteration = Number(this.config.cols.firstCol) - 1;
         for (rowForIteration; rowForIteration < range.e.r; rowForIteration++) {
-            var cell = this._getCell(sheet, rowForIteration, colForIteration);
+            var cell = getCell_1.getCell(sheet, rowForIteration, colForIteration);
             if (typeof cell === 'undefined')
                 continue;
             var cellValue = cell.v;
@@ -34290,17 +34249,17 @@ var ValidatorModel = /** @class */ (function () {
         var trimmedCellValue = String(cellValue).trim();
         var mode = this.config.mode;
         if (mode === "email")
-            isValid = this._isEmailValid(trimmedCellValue);
+            isValid = validators.isEmailValid(trimmedCellValue);
         if (mode === "phone")
-            isValid = this._isPhoneNumberValid(trimmedCellValue);
+            isValid = validators.isPhoneNumberValid(trimmedCellValue);
         if (mode === "site")
-            isValid = this._isSiteAddressValid(trimmedCellValue);
+            isValid = validators.isSiteAddressValid(trimmedCellValue);
         if (mode === "numbers")
-            isValid = this._isOnlyNumbersValid(trimmedCellValue);
+            isValid = validators.isOnlyNumbersValid(trimmedCellValue);
         if (mode === "ws")
             isValid = true;
-        if (this._doesHaveWhitespaces(cellValue) || !isValid) {
-            if (!isValid && this._doesHaveWhitespaces(cellValue)) {
+        if (doesHaveWhitespaces_1.default(cellValue) || !isValid) {
+            if (!isValid && doesHaveWhitespaces_1.default(cellValue)) {
                 error = "incorrect/whitespaces";
             }
             else if (!isValid) {
@@ -34327,13 +34286,10 @@ var ValidatorModel = /** @class */ (function () {
         var errors = [];
         var fullNames = [];
         for (var i = Number(this.config.row) - 1; i < end; i++) {
-            var firstName = !!this._getCell(sheet, i, Number(firstNameCol) - 1) ?
-                this._getCell(sheet, i, Number(firstNameCol) - 1).v.trim() : undefined;
-            var secondName = !!this._getCell(sheet, i, Number(secondNameCol) - 1) ?
-                this._getCell(sheet, i, Number(secondNameCol) - 1).v.trim() : undefined;
-            // const isOnlyWS = (string: string) => {
-            //     return string.replace(/ /g, '') === '';
-            // };
+            var firstName = !!getCell_1.getCell(sheet, i, Number(firstNameCol) - 1) ?
+                getCell_1.getCell(sheet, i, Number(firstNameCol) - 1).v.trim() : undefined;
+            var secondName = !!getCell_1.getCell(sheet, i, Number(secondNameCol) - 1) ?
+                getCell_1.getCell(sheet, i, Number(secondNameCol) - 1).v.trim() : undefined;
             if (!firstName || !secondName) {
                 if (!firstName && !secondName) {
                     errors.push({
@@ -34428,102 +34384,34 @@ var ValidatorModel = /** @class */ (function () {
         }
         return false;
     };
-    ValidatorModel.prototype._doesListExist = function (list, sheetNames) {
-        if (list > 0 && list <= sheetNames.length)
-            return true;
-    };
-    ValidatorModel.prototype._doesColExist = function (col, range) {
-        return (col >= (range.s.c + 1) && col <= (range.e.c + 1));
-    };
     ValidatorModel.prototype._doColumnsExist = function (workbook, listNumber) {
         var sheetNames = workbook.SheetNames;
         var sheet = workbook.Sheets[sheetNames[listNumber]];
         var range = XLSX.utils.decode_range(sheet['!ref']);
         var list = "list No " + listNumber;
-        var firstColHere = this._doesColExist(Number(this.config.cols.firstCol), range);
+        var firstColHere = doesColExist_1.doesColExist(Number(this.config.cols.firstCol), range);
         if (!firstColHere) {
             return "Column No " + this.config.cols.firstCol + " doesn't exist on " + list;
         }
-        var secondColHere = this._doesColExist(Number(this.config.cols.secondCol), range);
+        var secondColHere = doesColExist_1.doesColExist(Number(this.config.cols.secondCol), range);
         if (this.config.mode === 'fullName' && !secondColHere) {
             return "Column No " + this.config.cols.secondCol + " doesn't exist on " + list;
         }
         return true;
     };
-    ValidatorModel.prototype._getCell = function (sheet, row, col) {
-        return sheet[XLSX.utils.encode_cell({ r: row, c: col })];
-    };
-    ;
-    ValidatorModel.prototype._createErrorObject = function (row, col, value, error, list, listName, fileName) {
-        return {
-            row: row,
-            col: col,
-            value: value,
-            error: error,
-            list: list,
-            listName: listName,
-            fileName: fileName
-        };
-    };
     ValidatorModel.prototype._addListPropertiesToErrors = function (errors, listNumber, listName) {
-        var addPropertyToErrors = function (errors, property, value) {
-            for (var i = 0; i < errors.length; i++) {
-                if (errors[i] === undefined)
-                    continue;
-                if (Array.isArray(errors[i])) {
-                    addPropertyToErrors(errors[i], property, value);
-                    continue;
-                }
-                errors[i][property] = value;
-            }
-        };
         if (this.config.mode === 'fullName') {
             var key = void 0;
             for (key in errors) {
                 if (errors[key] !== false) {
-                    addPropertyToErrors(errors[key], 'list', listNumber);
-                    addPropertyToErrors(errors[key], 'listName', listName);
+                    addPropertyToErrors_1.addPropertyToErrors(errors[key], 'list', listNumber);
+                    addPropertyToErrors_1.addPropertyToErrors(errors[key], 'listName', listName);
                 }
             }
             return;
         }
-        addPropertyToErrors(errors, 'list', listNumber);
-        addPropertyToErrors(errors, 'listName', listName);
-    };
-    ValidatorModel.prototype._isEmailValid = function (trimmedEmail) {
-        var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-        return re.test(trimmedEmail.toLowerCase());
-    };
-    ValidatorModel.prototype._isPhoneNumberValid = function (trimmedPhone) {
-        var re = /^[0-9]{1,3} [0-9]+$/;
-        var encodedPhone = encodeURIComponent(trimmedPhone)
-            .replace('%C2%A0', '%20');
-        trimmedPhone = decodeURIComponent(encodedPhone);
-        return re.test(String(trimmedPhone));
-    };
-    ValidatorModel.prototype._isSiteAddressValid = function (trimmedAddress) {
-        var re = /(^https?:\/\/)|(www\.)[a-z0-9~_\-\.]+\.[a-z]{2,9}(\/|:|\?[!-~]*)?$/i;
-        return re.test(trimmedAddress);
-    };
-    ValidatorModel.prototype._isOnlyNumbersValid = function (trimmedNumber) {
-        var re = /^[0-9]+$/;
-        return re.test(trimmedNumber);
-    };
-    ValidatorModel.prototype._doesHaveWhitespaces = function (string) {
-        return !(string === string.trim());
-    };
-    ValidatorModel.prototype._doErrorsExist = function (errors) {
-        if (errors.length === 0)
-            return false;
-        for (var i = 0; i < errors.length; i++) {
-            if (!Array.isArray(errors[i])) {
-                return true;
-            }
-            else if (this._doErrorsExist(errors[i])) {
-                return true;
-            }
-        }
-        return false;
+        addPropertyToErrors_1.addPropertyToErrors(errors, 'list', listNumber);
+        addPropertyToErrors_1.addPropertyToErrors(errors, 'listName', listName);
     };
     return ValidatorModel;
 }());
@@ -34548,6 +34436,7 @@ var ValidatorPresenter = /** @class */ (function () {
         this.view = view;
         this.view.whenValidationStarted(this.validateWorkbook());
         this.model.whenWorkbookValidated(this.renderErrors());
+        this.model.whenConfigurationErrorFound(this.alertErrorMessage());
     }
     ValidatorPresenter.prototype.initialize = function () {
         this.view.renderUI();
@@ -34568,6 +34457,12 @@ var ValidatorPresenter = /** @class */ (function () {
             else {
                 _this.view.showNoErrorsMessage();
             }
+        };
+    };
+    ValidatorPresenter.prototype.alertErrorMessage = function () {
+        var _this = this;
+        return function (error) {
+            _this.view.showErrorMessage(error);
         };
     };
     return ValidatorPresenter;
@@ -34634,13 +34529,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var XLSX = __importStar(__webpack_require__(/*! xlsx */ "./node_modules/xlsx/xlsx.js"));
 var Observer_1 = __importDefault(__webpack_require__(/*! ../Observer */ "./src/Observer.ts"));
+var elements = __importStar(__webpack_require__(/*! ../ValidatorView.private/elements */ "./src/ValidatorView.private/elements.ts"));
+var toggleElements_1 = __webpack_require__(/*! ../ValidatorView.private/toggleElements */ "./src/ValidatorView.private/toggleElements.ts");
+var doesHaveOnlyDigits_1 = __webpack_require__(/*! ../doesHaveOnlyDigits */ "./src/doesHaveOnlyDigits.ts");
 var ValidatorView = /** @class */ (function () {
     function ValidatorView() {
         this._validationStartedSubject = new Observer_1.default();
-        var headerArea = this._createElements().createHeaderArea();
-        var settingsArea = this._createElements().createSettingsArea();
-        var noErrorsMessage = this._createElements().createNoErrorsMessage();
-        var errorsArea = this._createElements().createErrorsArea();
+        var headerArea = elements.createHeaderArea();
+        var settingsArea = elements.createSettingsArea();
+        var noErrorsMessage = elements.createNoErrorsMessage();
+        var errorsArea = elements.createErrorsArea();
         this.elements = {
             root: document.body,
             headerArea: {
@@ -34677,15 +34575,23 @@ var ValidatorView = /** @class */ (function () {
         };
     }
     ValidatorView.prototype.renderUI = function () {
+        var _this = this;
         this.elements.settingsArea.colInputs.secondInput.style.display = 'none';
-        this._appendToElem(this.elements.root, this.elements.headerArea.wrapper, this.elements.settingsArea.wrapper);
-        var handlers = this._createHandlers();
-        handlers.setHandlerForSettingsChange();
-        handlers.setHandlerForRunButtonClick();
+        elements.appendToElem(this.elements.root, this.elements.headerArea.wrapper, this.elements.settingsArea.wrapper);
+        this.elements.settingsArea.fileInput.input.onchange =
+            this.elements.settingsArea.modeSelect.select.onchange =
+                this.elements.settingsArea.colInputs.firstInput.oninput =
+                    this.elements.settingsArea.colInputs.secondInput.oninput =
+                        this.elements.settingsArea.listInput.input.oninput = function () {
+                            _this._refreshSettingsArea();
+                        };
+        this.elements.settingsArea.runButton.addEventListener('click', function () {
+            _this._validationStartedSubject.notifyObservers();
+        });
     };
     ValidatorView.prototype.whenValidationStarted = function (callback) {
         var _this = this;
-        this._validationStartedSubject.addObserver(function (workbook) {
+        this._validationStartedSubject.addObserver(function () {
             _this.config = {
                 mode: _this.elements.settingsArea.modeSelect.select.value,
                 row: '2',
@@ -34696,7 +34602,18 @@ var ValidatorView = /** @class */ (function () {
                 list: _this.elements.settingsArea.listInput.input.value.replace(/ /g, ''),
                 fileName: _this.elements.settingsArea.fileInput.input.files[0].name
             };
-            callback(workbook, _this.config);
+            _this._toggleSettings('off');
+            _this._cleanPage();
+            var files = _this.elements.settingsArea.fileInput.input.files, file = files[0];
+            var reader = new FileReader();
+            var that = _this;
+            reader.onload = function (e) {
+                // @ts-ignore
+                var data = new Uint8Array(e.target.result);
+                var workbook = XLSX.read(data, { type: 'array' });
+                callback(workbook, that.config);
+            };
+            reader.readAsArrayBuffer(file);
         });
     };
     ValidatorView.prototype.renderErrors = function (workbookErrors, log) {
@@ -34727,8 +34644,8 @@ var ValidatorView = /** @class */ (function () {
                                             list = currentList[0].list;
                                             listName = currentList[0].listName;
                                         }
-                                        errorsListBlock = this._createElements().createListErrorsBlock(listName, list);
-                                        this._appendToElem(this.elements.errorsArea.wrapper, errorsListBlock.wrapper);
+                                        errorsListBlock = elements.createListErrorsBlock(listName, list);
+                                        elements.appendToElem(this.elements.errorsArea.wrapper, errorsListBlock.wrapper);
                                         return [4 /*yield*/, this._renderListErrors(currentList, errorsListBlock.table, errorsListForm, numeration)];
                                     case 2:
                                         _a.sent();
@@ -34740,7 +34657,7 @@ var ValidatorView = /** @class */ (function () {
                                 }
                             });
                         }); };
-                        this._appendToElem(this.elements.root, this.elements.errorsArea.wrapper);
+                        elements.appendToElem(this.elements.root, this.elements.errorsArea.wrapper);
                         if (!(this.config.mode === 'fullName')) return [3 /*break*/, 5];
                         convertFullNameErrors = function (errorsArray) {
                             var lackOfNames = [];
@@ -34770,7 +34687,7 @@ var ValidatorView = /** @class */ (function () {
                         _a.label = 2;
                     case 2:
                         if (!(lackOfNamesErrors !== false)) return [3 /*break*/, 4];
-                        this._appendToElem(this.elements.errorsArea.wrapper, this.elements.errorsArea.anotherErrorsSign);
+                        elements.appendToElem(this.elements.errorsArea.wrapper, this.elements.errorsArea.anotherErrorsSign);
                         return [4 /*yield*/, loopAndRenderErrors(lackOfNamesErrors, 'array', 'in-course')];
                     case 3:
                         _a.sent();
@@ -34781,9 +34698,9 @@ var ValidatorView = /** @class */ (function () {
                         _a.sent();
                         _a.label = 7;
                     case 7:
-                        this.elements.logButton = this._createElements().createLogButton(log);
-                        this._appendToElem(this.elements.settingsArea.wrapper, this.elements.logButton);
-                        this.toggleSettings('on');
+                        this.elements.logButton = elements.createLogButton(log);
+                        elements.appendToElem(this.elements.settingsArea.wrapper, this.elements.logButton);
+                        this._toggleSettings('on');
                         return [2 /*return*/];
                 }
             });
@@ -34813,7 +34730,7 @@ var ValidatorView = /** @class */ (function () {
                                         }
                                         if (numeration === 'in-course' && !numberToRender)
                                             errorNumber = i + 1;
-                                        tableRow = this._createElements().createRowForErrorsTable(errorNumber, currentErrorObject.row, currentErrorObject.value, currentErrorObject.error);
+                                        tableRow = elements.createRowForErrorsTable(errorNumber, currentErrorObject.row, currentErrorObject.value, currentErrorObject.error);
                                         getRowThroughTimeout = function (row) { return __awaiter(_this, void 0, void 0, function () {
                                             return __generator(this, function (_a) {
                                                 return [2 /*return*/, new Promise(function (resolve) {
@@ -34825,7 +34742,7 @@ var ValidatorView = /** @class */ (function () {
                                         }); };
                                         return [4 /*yield*/, getRowThroughTimeout(tableRow)
                                                 .then(function (row) {
-                                                _this._appendToElem(table, row);
+                                                elements.appendToElem(table, row);
                                             }, null)];
                                     case 2:
                                         _a.sent();
@@ -34862,97 +34779,44 @@ var ValidatorView = /** @class */ (function () {
         });
     };
     ValidatorView.prototype.showNoErrorsMessage = function () {
-        this._appendToElem(this.elements.root, this.elements.noErrorsMessage);
+        elements.appendToElem(this.elements.root, this.elements.noErrorsMessage);
     };
-    ValidatorView.prototype._createHandlers = function () {
-        var _this = this;
-        var isSettingsCorrect = function (mode, fileInput, modeSelect, firstColInput, secondColInput, listInput) {
-            var doesHaveOnlyDigits = function (value) {
-                return /^\d+$/.test(value);
-            };
-            var isListCorrect = function (list) {
-                if (list === '')
-                    return true;
-                var noWs = list.replace(/ /g, '');
-                if (doesHaveOnlyDigits(noWs))
-                    return true;
-                if (noWs.match(/,/) !== null) {
-                    if (doesHaveOnlyDigits(noWs.replace(/,/g, ''))) {
-                        return true;
-                    }
-                }
-                if ((noWs.match(/-/).length === 1)) {
-                    if (doesHaveOnlyDigits(noWs.replace(/-/, ''))) {
-                        return true;
-                    }
-                }
-                return false;
-            };
-            if (mode === 'fullName') {
-                return (fileInput.files[0] &&
-                    (modeSelect.selectedIndex !== 0) &&
-                    (doesHaveOnlyDigits(firstColInput.value)) &&
-                    (doesHaveOnlyDigits(secondColInput.value)) &&
-                    (isListCorrect(listInput.value)));
-            }
-            else {
-                return (fileInput.files[0] &&
-                    (modeSelect.selectedIndex !== 0) &&
-                    (doesHaveOnlyDigits(firstColInput.value)) &&
-                    (isListCorrect(listInput.value)));
-            }
-        };
-        var settingsChangeHandler = function () {
-            var handler = function () {
-                var fileInput = _this.elements.settingsArea.fileInput.input;
-                var modeSelect = _this.elements.settingsArea.modeSelect.select;
-                var firstColInput = _this.elements.settingsArea.colInputs.firstInput;
-                var secondColInput = _this.elements.settingsArea.colInputs.secondInput;
-                var listInput = _this.elements.settingsArea.listInput.input;
-                var runButton = _this.elements.settingsArea.runButton;
-                var mode = _this.elements.settingsArea.modeSelect.select.value;
-                runButton.disabled = !isSettingsCorrect(mode, fileInput, modeSelect, firstColInput, secondColInput, listInput);
-                if (mode !== 'fullName') {
-                    secondColInput.style.display = 'none';
-                    firstColInput.placeholder = 'Col';
-                }
-                else {
-                    secondColInput.style.display = 'block';
-                    firstColInput.placeholder = 'FN';
-                }
-            };
-            _this.elements.settingsArea.fileInput.input.onchange =
-                _this.elements.settingsArea.modeSelect.select.onchange =
-                    _this.elements.settingsArea.colInputs.firstInput.oninput =
-                        _this.elements.settingsArea.colInputs.secondInput.oninput =
-                            _this.elements.settingsArea.listInput.input.oninput = handler;
-        };
-        var runButtonClickHandler = function () {
-            var handler = function () {
-                _this.toggleSettings('off');
-                _this._cleanPage();
-                var files = _this.elements.settingsArea.fileInput.input.files, file = files[0];
-                var reader = new FileReader();
-                var that = _this;
-                reader.onload = function (e) {
-                    // @ts-ignore
-                    var data = new Uint8Array(e.target.result);
-                    var workbook = XLSX.read(data, { type: 'array' });
-                    that._validationStartedSubject.notifyObservers(workbook);
-                };
-                reader.readAsArrayBuffer(file);
-            };
-            _this.elements.settingsArea.runButton.addEventListener('click', handler);
-        };
-        return {
-            setHandlerForSettingsChange: settingsChangeHandler,
-            setHandlerForRunButtonClick: runButtonClickHandler
-        };
+    ValidatorView.prototype.showErrorMessage = function (error) {
+        alert(error);
+    };
+    ValidatorView.prototype._refreshSettingsArea = function () {
+        var mode = this.elements.settingsArea.modeSelect.select.value;
+        this.elements.settingsArea.runButton.disabled = this._isSettingsCorrect();
+        if (mode !== 'fullName') {
+            this.elements.settingsArea.colInputs.secondInput.style.display = 'none';
+            this.elements.settingsArea.colInputs.firstInput.placeholder = 'Col';
+        }
+        else {
+            this.elements.settingsArea.colInputs.secondInput.style.display = 'block';
+            this.elements.settingsArea.colInputs.firstInput.placeholder = 'FN';
+        }
+    };
+    ;
+    ValidatorView.prototype._isSettingsCorrect = function () {
+        var mode = this.elements.settingsArea.modeSelect.select.value;
+        if (mode === 'fullName') {
+            return (this.elements.settingsArea.fileInput.input.files[0] &&
+                (this.elements.settingsArea.modeSelect.select.selectedIndex !== 0) &&
+                (doesHaveOnlyDigits_1.doesHaveOnlyDigits(this.elements.settingsArea.colInputs.firstInput.value)) &&
+                (doesHaveOnlyDigits_1.doesHaveOnlyDigits(this.elements.settingsArea.colInputs.secondInput.value)) &&
+                (this._isListNumberCorrect()));
+        }
+        else {
+            return (this.elements.settingsArea.fileInput.input.files[0] &&
+                (this.elements.settingsArea.modeSelect.select.selectedIndex !== 0) &&
+                (doesHaveOnlyDigits_1.doesHaveOnlyDigits(this.elements.settingsArea.colInputs.firstInput.value)) &&
+                (this._isListNumberCorrect()));
+        }
     };
     ValidatorView.prototype._cleanPage = function () {
         if (this.elements.root.contains(this.elements.errorsArea.wrapper)) {
             this.elements.errorsArea.wrapper.remove();
-            this.elements.errorsArea = this._createElements().createErrorsArea();
+            this.elements.errorsArea = elements.createErrorsArea();
         }
         if (this.elements.root.contains(this.elements.logButton)) {
             this.elements.logButton.remove();
@@ -34962,260 +34826,27 @@ var ValidatorView = /** @class */ (function () {
             this.elements.noErrorsMessage.remove();
         }
     };
-    ValidatorView.prototype._createElements = function () {
-        var _this = this;
-        var createWithAttr = function (name) {
-            var properties = [];
-            for (var _i = 1; _i < arguments.length; _i++) {
-                properties[_i - 1] = arguments[_i];
-            }
-            var element = document.createElement(name);
-            properties.forEach(function (property) {
-                element.setAttribute(property[0], property[1]);
-            });
-            return element;
-        };
-        var createDivWithClass = function (className) {
-            return createWithAttr('div', ['class', className]);
-        };
-        var createHeaderArea = function () {
-            var wrapper = createDivWithClass('header-area__wrapper');
-            var name = createWithAttr('div', ['class', 'header-area__name']);
-            name.innerHTML = 'Exsel Database Validator';
-            _this._appendToElem(wrapper, name);
-            return {
-                wrapper: wrapper,
-                name: name
-            };
-        };
-        var createCustomFileInput = function () {
-            var wrapper = createDivWithClass('file-input__wrapper');
-            var input = createWithAttr('input', ['class', 'file-input__input'], ['id', 'file-input__input'], ['type', 'file'], ['accept', '.xlsx']);
-            var label = createWithAttr('label', ['class', 'file-input__label'], ['for', 'file-input__input']);
-            var text = 'Choose a file (only .xlsx)...';
-            label.innerHTML = text;
-            input.addEventListener('change', function () {
-                var file = input.files[0];
-                if (!!file)
-                    label.innerHTML = file.name;
-                else
-                    label.innerHTML = text;
-            });
-            _this._appendToElem(wrapper, input, label);
-            return {
-                wrapper: wrapper,
-                input: input
-            };
-        };
-        var createModeSelect = function () {
-            var wrapper = createDivWithClass('mode-select__wrapper');
-            var sign = createWithAttr('div', ['class', 'sign mode-select__sign']);
-            sign.innerHTML = 'Check for: ';
-            var select = createWithAttr('select', ['class', 'mode-select__select']);
-            var createOption = function (value, text) {
-                var option = createWithAttr('option', ['class', 'mode-select__option'], ['value', value]);
-                option.innerHTML = text;
-                return option;
-            };
-            _this._appendToElem(select, createOption('none', 'Choose...'), createOption('email', 'Email Errors'), createOption('phone', 'Phone Number Errors'), createOption('site', 'Site Address Errors'), createOption('ws', 'Whitespaces'), createOption('numbers', 'Only Numbers Errors'), createOption('fullName', 'FullName Errors'));
-            _this._appendToElem(wrapper, sign, select);
-            return {
-                wrapper: wrapper,
-                select: select
-            };
-        };
-        var createColInputs = function () {
-            var wrapper = createDivWithClass('col-inputs__wrapper');
-            var sign = createWithAttr('div', ['class', 'sign col-inputs__sign']);
-            sign.innerHTML = 'Type column number: ';
-            var firstInput = createWithAttr('input', ['class', 'col-inputs__input'], ['type', 'text'], ['placeholder', 'Col']);
-            var secondInput = createWithAttr('input', ['class', 'col-inputs__input'], ['type', 'text'], ['placeholder', 'SN']);
-            _this._appendToElem(wrapper, sign, firstInput, secondInput);
-            return {
-                wrapper: wrapper,
-                firstInput: firstInput,
-                secondInput: secondInput
-            };
-        };
-        var createListInput = function () {
-            var wrapper = createDivWithClass('list-input__wrapper');
-            var sign = createWithAttr('div', ['class', 'sign list-input__sign']);
-            sign.innerHTML = 'Type lists number:';
-            var input = _this._createElements().create('input', ['class', 'list-input__input'], ['type', 'text']);
-            _this._appendToElem(wrapper, sign, input);
-            return {
-                wrapper: wrapper,
-                input: input
-            };
-        };
-        var createDisabledRunButton = function () {
-            var runButton = createWithAttr('button', ['class', 'button run-button'], ['disabled', 'disabled']);
-            runButton.innerHTML = 'VALIDATE';
-            return runButton;
-        };
-        var createSettingsArea = function () {
-            var wrapper = createDivWithClass('settings-wrapper');
-            var fileInput = createCustomFileInput();
-            var modeSelect = createModeSelect();
-            var colInputs = createColInputs();
-            var listInput = createListInput();
-            var runButton = createDisabledRunButton();
-            _this._appendToElem(wrapper, fileInput.wrapper, modeSelect.wrapper, colInputs.wrapper, listInput.wrapper, runButton);
-            return {
-                wrapper: wrapper,
-                fileInput: fileInput,
-                modeSelect: modeSelect,
-                colInputs: colInputs,
-                listInput: listInput,
-                runButton: runButton
-            };
-        };
-        var createNoErrorsMessage = function () {
-            var message = createWithAttr('div', ['class', 'no-errors-message']);
-            message.innerHTML = 'No errors were found.';
-            return message;
-        };
-        var createAnotherErrorsSign = function () {
-            var sign = createWithAttr('div', ['class', 'another-errors-sign']);
-            sign.innerHTML = 'Another errors found:';
-            return sign;
-        };
-        var createErrorsArea = function () {
-            var wrapper = createDivWithClass('error-area__wrapper');
-            var sign = createWithAttr('div', ['class', 'error-area__sign']);
-            var anotherErrorsSign = createAnotherErrorsSign();
-            sign.innerHTML = 'Errors list:';
-            _this._appendToElem(wrapper, sign);
-            return {
-                wrapper: wrapper,
-                anotherErrorsSign: anotherErrorsSign
-            };
-        };
-        var createListErrorsBlock = function (nameOfList, numberOfList) {
-            var wrapper = createDivWithClass('list-errors__wrapper');
-            var listName = createDivWithClass('list-errors__list-name');
-            listName.innerHTML = "List No " + numberOfList + " (" + nameOfList + ")";
-            var table = createWithAttr('table', ['class', 'list-errors__table'], ['border', '1px']);
-            var header = createWithAttr('tr', ['class', 'list-errors__table-header']);
-            var createHeaderCell = function (text) {
-                var headerCell = createWithAttr('td', ['class', 'list-errors__cell list-errors__header-cell']);
-                headerCell.innerHTML = text;
-                return headerCell;
-            };
-            _this._appendToElem(header, createHeaderCell('No'), createHeaderCell('ROW'), createHeaderCell('VALUE'), createHeaderCell('ERROR TYPE'));
-            _this._appendToElem(table, header);
-            _this._appendToElem(wrapper, listName, table);
-            return {
-                wrapper: wrapper,
-                table: table
-            };
-        };
-        var createRowForErrorsTable = function (number, row, value, error) {
-            var tableRow = createWithAttr('tr', ['class', 'list-errors__table-row']);
-            var createTableCell = function (text) {
-                var tableCell = createWithAttr('td', ['class', 'list-errors__cell list-errors__table-cell']);
-                if (!!text) {
-                    tableCell.innerHTML = text;
-                }
-                return tableCell;
-            };
-            _this._appendToElem(tableRow, createTableCell(!number ? null : String(number)), createTableCell(String(row)), createTableCell(value), createTableCell(error));
-            return tableRow;
-        };
-        var createLogDownloadButton = function (text) {
-            var button = createWithAttr('button', ['class', 'button log-download-button']);
-            button.innerHTML = 'Download Report';
-            button.addEventListener('click', function () {
-                _this._selfDownloadFile('report.txt', text);
-            });
-            return button;
-        };
-        return {
-            create: createWithAttr,
-            createHeaderArea: createHeaderArea,
-            createSettingsArea: createSettingsArea,
-            createNoErrorsMessage: createNoErrorsMessage,
-            createErrorsArea: createErrorsArea,
-            createListErrorsBlock: createListErrorsBlock,
-            createRowForErrorsTable: createRowForErrorsTable,
-            createAnotherErrorsSign: createAnotherErrorsSign(),
-            createLogButton: createLogDownloadButton
-        };
-    };
-    ValidatorView.prototype._selfDownloadFile = function (filename, text) {
-        var element = document.createElement('a');
-        element.setAttribute('href', 'data:text/plain;charset=utf-8,'
-            + encodeURIComponent(text));
-        element.setAttribute('download', filename);
-        element.style.display = 'none';
-        document.body.appendChild(element);
-        element.click();
-        document.body.removeChild(element);
-    };
-    ;
-    ValidatorView.prototype._appendToElem = function (root) {
-        var elements = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            elements[_i - 1] = arguments[_i];
-        }
-        elements.forEach(function (element) {
-            root.append(element);
-        });
-    };
-    ValidatorView.prototype._toggleElements = function (mode) {
-        var elements = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            elements[_i - 1] = arguments[_i];
-        }
-        var result;
-        if (mode === 'on') {
-            result = false;
-        }
-        else if (mode === 'off') {
-            result = true;
-        }
-        else {
-            throw new Error('mode can be only "on" or "off"');
-        }
-        elements.forEach(function (element) { return element.disabled = result; });
-    };
-    ;
-    ValidatorView.prototype.toggleSettings = function (mode) {
-        var fileInput = this.elements.settingsArea.fileInput.input;
-        var modeSelect = this.elements.settingsArea.modeSelect.select;
-        var firstColInput = this.elements.settingsArea.colInputs.firstInput;
-        var secondColInput = this.elements.settingsArea.colInputs.secondInput;
-        var listInput = this.elements.settingsArea.listInput.input;
-        var runButton = this.elements.settingsArea.runButton;
-        this._toggleElements(mode, runButton, fileInput, modeSelect, firstColInput, secondColInput, listInput);
-    };
-    ValidatorView.prototype._deleteElementFromDomIfItExists = function (root, element) {
-        console.log('i\'m here');
-        if (root.contains(element)) {
-            console.log(true);
-            root.removeChild(element);
-        }
-    };
-    ;
-    ValidatorView.prototype._cleanElement = function (element) {
-        if (element.children.length === 0)
-            return;
-        for (var i = 0; i < element.children.length; i++) {
-            element.children[i].remove();
-        }
-    };
-    ValidatorView.prototype._doErrorsExist = function (errors) {
-        if (errors.length === 0)
-            return false;
-        for (var i = 0; i < errors.length; i++) {
-            if (!Array.isArray(errors[i])) {
+    ValidatorView.prototype._isListNumberCorrect = function () {
+        var list = this.elements.settingsArea.listInput.input.value;
+        if (list === '')
+            return true;
+        var noWs = list.replace(/ /g, '');
+        if (doesHaveOnlyDigits_1.doesHaveOnlyDigits(noWs))
+            return true;
+        if (noWs.match(/,/) !== null) {
+            if (doesHaveOnlyDigits_1.doesHaveOnlyDigits(noWs.replace(/,/g, ''))) {
                 return true;
             }
-            else if (this._doErrorsExist(errors[i])) {
+        }
+        if ((noWs.match(/-/).length === 1)) {
+            if (doesHaveOnlyDigits_1.doesHaveOnlyDigits(noWs.replace(/-/, ''))) {
                 return true;
             }
         }
         return false;
+    };
+    ValidatorView.prototype._toggleSettings = function (mode) {
+        toggleElements_1.toggleElements(mode, this.elements.settingsArea.fileInput.input, this.elements.settingsArea.modeSelect.select, this.elements.settingsArea.colInputs.firstInput, this.elements.settingsArea.colInputs.secondInput, this.elements.settingsArea.listInput.input, this.elements.settingsArea.runButton);
     };
     return ValidatorView;
 }());
@@ -35702,6 +35333,466 @@ var Observer = /** @class */ (function () {
     return Observer;
 }());
 exports.default = Observer;
+
+
+/***/ }),
+
+/***/ "./src/ValidatorModel.private/addPropertyToErrors.ts":
+/*!***********************************************************!*\
+  !*** ./src/ValidatorModel.private/addPropertyToErrors.ts ***!
+  \***********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.addPropertyToErrors = function (errors, property, value) {
+    for (var i = 0; i < errors.length; i++) {
+        if (errors[i] === undefined)
+            continue;
+        if (Array.isArray(errors[i])) {
+            exports.addPropertyToErrors(errors[i], property, value);
+            continue;
+        }
+        errors[i][property] = value;
+    }
+};
+
+
+/***/ }),
+
+/***/ "./src/ValidatorModel.private/doListsFromArrayExist.ts":
+/*!*************************************************************!*\
+  !*** ./src/ValidatorModel.private/doListsFromArrayExist.ts ***!
+  \*************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var doesListExist = function (list, sheetNames) {
+    if (list > 0 && list <= sheetNames.length)
+        return true;
+};
+exports.doListsFromArrayExist = function (listsArray, sheetNames) {
+    var createListError = function (listNumber) {
+        return "List No " + listNumber + " doesn't exist";
+    };
+    var result = true;
+    var error;
+    for (var i = 0; i < listsArray.length; i++) {
+        if (!doesListExist(listsArray[i], sheetNames)) {
+            result = false;
+            error = createListError(listsArray[i]);
+            break;
+        }
+    }
+    return {
+        result: result,
+        error: error
+    };
+};
+
+
+/***/ }),
+
+/***/ "./src/ValidatorModel.private/doesColExist.ts":
+/*!****************************************************!*\
+  !*** ./src/ValidatorModel.private/doesColExist.ts ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.doesColExist = function (col, range) {
+    return (col >= (range.s.c + 1) && col <= (range.e.c + 1));
+};
+
+
+/***/ }),
+
+/***/ "./src/ValidatorModel.private/getCell.ts":
+/*!***********************************************!*\
+  !*** ./src/ValidatorModel.private/getCell.ts ***!
+  \***********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var XLSX = __importStar(__webpack_require__(/*! xlsx */ "./node_modules/xlsx/xlsx.js"));
+exports.getCell = function (sheet, row, col) {
+    return sheet[XLSX.utils.encode_cell({ r: row, c: col })];
+};
+
+
+/***/ }),
+
+/***/ "./src/ValidatorModel.private/getListsArray.ts":
+/*!*****************************************************!*\
+  !*** ./src/ValidatorModel.private/getListsArray.ts ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getListsArray = function (noWsListNumberFromConfig, sheetNames) {
+    //lists = [first,...., last]: first and last inclusively
+    var lists;
+    var type;
+    if (noWsListNumberFromConfig === '') {
+        lists = [1, sheetNames.length];
+        type = 'fullWorkbook';
+    }
+    if (/\d+/.test(noWsListNumberFromConfig)) {
+        lists = [Number(noWsListNumberFromConfig), Number(noWsListNumberFromConfig)];
+        type = 'singleList';
+    }
+    if (noWsListNumberFromConfig.match(/,/) !== null) {
+        var array = noWsListNumberFromConfig.split(',');
+        //CHECK THIS LATER IF LISTS HAVEN'T BECOME NUMBERS
+        lists = array.map(function (list) { return Number(list); });
+        type = 'listsCollection';
+    }
+    if (noWsListNumberFromConfig.match(/-/) !== null) {
+        if (noWsListNumberFromConfig.match(/-/).length === 1) {
+            var array = noWsListNumberFromConfig.split('-');
+            lists = array.map(function (list) { return Number(list); });
+            type = 'listsRange';
+        }
+    }
+    return {
+        lists: lists,
+        type: type
+    };
+};
+
+
+/***/ }),
+
+/***/ "./src/ValidatorModel.private/validators.ts":
+/*!**************************************************!*\
+  !*** ./src/ValidatorModel.private/validators.ts ***!
+  \**************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.isEmailValid = function (trimmedEmail) {
+    var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(trimmedEmail.toLowerCase());
+};
+exports.isPhoneNumberValid = function (trimmedPhone) {
+    var re = /^[0-9]{1,3} [0-9]+$/;
+    var encodedPhone = encodeURIComponent(trimmedPhone)
+        .replace('%C2%A0', '%20');
+    trimmedPhone = decodeURIComponent(encodedPhone);
+    return re.test(String(trimmedPhone));
+};
+exports.isSiteAddressValid = function (trimmedAddress) {
+    var re = /(^https?:\/\/)|(www\.)[a-z0-9~_\-\.]+\.[a-z]{2,9}(\/|:|\?[!-~]*)?$/i;
+    return re.test(trimmedAddress);
+};
+exports.isOnlyNumbersValid = function (trimmedNumber) {
+    var re = /^[0-9]+$/;
+    return re.test(trimmedNumber);
+};
+
+
+/***/ }),
+
+/***/ "./src/ValidatorView.private/elements.ts":
+/*!***********************************************!*\
+  !*** ./src/ValidatorView.private/elements.ts ***!
+  \***********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var selfDownLoadFile_1 = __webpack_require__(/*! ./selfDownLoadFile */ "./src/ValidatorView.private/selfDownLoadFile.ts");
+exports.appendToElem = function (root) {
+    var elements = [];
+    for (var _i = 1; _i < arguments.length; _i++) {
+        elements[_i - 1] = arguments[_i];
+    }
+    elements.forEach(function (element) {
+        root.append(element);
+    });
+};
+exports.create = function (name) {
+    var properties = [];
+    for (var _i = 1; _i < arguments.length; _i++) {
+        properties[_i - 1] = arguments[_i];
+    }
+    var element = document.createElement(name);
+    properties.forEach(function (property) {
+        element.setAttribute(property[0], property[1]);
+    });
+    return element;
+};
+exports.createDivWithClass = function (className) {
+    return exports.create('div', ['class', className]);
+};
+exports.createHeaderArea = function () {
+    var wrapper = exports.createDivWithClass('header-area__wrapper');
+    var name = exports.create('div', ['class', 'header-area__name']);
+    name.innerHTML = 'Exsel Database Validator';
+    exports.appendToElem(wrapper, name);
+    return {
+        wrapper: wrapper,
+        name: name
+    };
+};
+exports.createCustomFileInput = function () {
+    var wrapper = exports.createDivWithClass('file-input__wrapper');
+    var input = exports.create('input', ['class', 'file-input__input'], ['id', 'file-input__input'], ['type', 'file'], ['accept', '.xlsx']);
+    var label = exports.create('label', ['class', 'file-input__label'], ['for', 'file-input__input']);
+    var text = 'Choose a file (only .xlsx)...';
+    label.innerHTML = text;
+    input.addEventListener('change', function () {
+        var file = input.files[0];
+        if (!!file)
+            label.innerHTML = file.name;
+        else
+            label.innerHTML = text;
+    });
+    exports.appendToElem(wrapper, input, label);
+    return {
+        wrapper: wrapper,
+        input: input
+    };
+};
+exports.createModeSelect = function () {
+    var wrapper = exports.createDivWithClass('mode-select__wrapper');
+    var sign = exports.create('div', ['class', 'sign mode-select__sign']);
+    sign.innerHTML = 'Check for: ';
+    var select = exports.create('select', ['class', 'mode-select__select']);
+    var createOption = function (value, text) {
+        var option = exports.create('option', ['class', 'mode-select__option'], ['value', value]);
+        option.innerHTML = text;
+        return option;
+    };
+    exports.appendToElem(select, createOption('none', 'Choose...'), createOption('email', 'Email Errors'), createOption('phone', 'Phone Number Errors'), createOption('site', 'Site Address Errors'), createOption('ws', 'Whitespaces'), createOption('numbers', 'Only Numbers Errors'), createOption('fullName', 'FullName Errors'));
+    exports.appendToElem(wrapper, sign, select);
+    return {
+        wrapper: wrapper,
+        select: select
+    };
+};
+exports.createColInputs = function () {
+    var wrapper = exports.createDivWithClass('col-inputs__wrapper');
+    var sign = exports.create('div', ['class', 'sign col-inputs__sign']);
+    sign.innerHTML = 'Type column number: ';
+    var firstInput = exports.create('input', ['class', 'col-inputs__input'], ['type', 'text'], ['placeholder', 'Col']);
+    var secondInput = exports.create('input', ['class', 'col-inputs__input'], ['type', 'text'], ['placeholder', 'SN']);
+    exports.appendToElem(wrapper, sign, firstInput, secondInput);
+    return {
+        wrapper: wrapper,
+        firstInput: firstInput,
+        secondInput: secondInput
+    };
+};
+exports.createListInput = function () {
+    var wrapper = exports.createDivWithClass('list-input__wrapper');
+    var sign = exports.create('div', ['class', 'sign list-input__sign']);
+    sign.innerHTML = 'Type lists number:';
+    var input = exports.create('input', ['class', 'list-input__input'], ['type', 'text']);
+    exports.appendToElem(wrapper, sign, input);
+    return {
+        wrapper: wrapper,
+        input: input
+    };
+};
+exports.createDisabledRunButton = function () {
+    var runButton = exports.create('button', ['class', 'button run-button'], ['disabled', 'disabled']);
+    runButton.innerHTML = 'VALIDATE';
+    return runButton;
+};
+exports.createSettingsArea = function () {
+    var wrapper = exports.createDivWithClass('settings-wrapper');
+    var fileInput = exports.createCustomFileInput();
+    var modeSelect = exports.createModeSelect();
+    var colInputs = exports.createColInputs();
+    var listInput = exports.createListInput();
+    var runButton = exports.createDisabledRunButton();
+    exports.appendToElem(wrapper, fileInput.wrapper, modeSelect.wrapper, colInputs.wrapper, listInput.wrapper, runButton);
+    return {
+        wrapper: wrapper,
+        fileInput: fileInput,
+        modeSelect: modeSelect,
+        colInputs: colInputs,
+        listInput: listInput,
+        runButton: runButton
+    };
+};
+exports.createNoErrorsMessage = function () {
+    var message = exports.create('div', ['class', 'no-errors-message']);
+    message.innerHTML = 'No errors were found.';
+    return message;
+};
+exports.createAnotherErrorsSign = function () {
+    var sign = exports.create('div', ['class', 'another-errors-sign']);
+    sign.innerHTML = 'Another errors found:';
+    return sign;
+};
+exports.createErrorsArea = function () {
+    var wrapper = exports.createDivWithClass('error-area__wrapper');
+    var sign = exports.create('div', ['class', 'error-area__sign']);
+    var anotherErrorsSign = exports.createAnotherErrorsSign();
+    sign.innerHTML = 'Errors list:';
+    exports.appendToElem(wrapper, sign);
+    return {
+        wrapper: wrapper,
+        anotherErrorsSign: anotherErrorsSign
+    };
+};
+exports.createListErrorsBlock = function (nameOfList, numberOfList) {
+    var wrapper = exports.createDivWithClass('list-errors__wrapper');
+    var listName = exports.createDivWithClass('list-errors__list-name');
+    listName.innerHTML = "List No " + numberOfList + " (" + nameOfList + ")";
+    var table = exports.create('table', ['class', 'list-errors__table'], ['border', '1px']);
+    var header = exports.create('tr', ['class', 'list-errors__table-header']);
+    var createHeaderCell = function (text) {
+        var headerCell = exports.create('td', ['class', 'list-errors__cell list-errors__header-cell']);
+        headerCell.innerHTML = text;
+        return headerCell;
+    };
+    exports.appendToElem(header, createHeaderCell('No'), createHeaderCell('ROW'), createHeaderCell('VALUE'), createHeaderCell('ERROR TYPE'));
+    exports.appendToElem(table, header);
+    exports.appendToElem(wrapper, listName, table);
+    return {
+        wrapper: wrapper,
+        table: table
+    };
+};
+exports.createRowForErrorsTable = function (number, row, value, error) {
+    var tableRow = exports.create('tr', ['class', 'list-errors__table-row']);
+    var createTableCell = function (text) {
+        var tableCell = exports.create('td', ['class', 'list-errors__cell list-errors__table-cell']);
+        if (!!text) {
+            tableCell.innerHTML = text;
+        }
+        return tableCell;
+    };
+    exports.appendToElem(tableRow, createTableCell(!number ? null : String(number)), createTableCell(String(row)), createTableCell(value), createTableCell(error));
+    return tableRow;
+};
+exports.createLogButton = function (text) {
+    var button = exports.create('button', ['class', 'button log-download-button']);
+    button.innerHTML = 'Download Report';
+    button.addEventListener('click', function () {
+        selfDownLoadFile_1.selfDownloadFile('report.txt', text);
+    });
+    return button;
+};
+
+
+/***/ }),
+
+/***/ "./src/ValidatorView.private/selfDownLoadFile.ts":
+/*!*******************************************************!*\
+  !*** ./src/ValidatorView.private/selfDownLoadFile.ts ***!
+  \*******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.selfDownloadFile = function (filename, text) {
+    var element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,'
+        + encodeURIComponent(text));
+    element.setAttribute('download', filename);
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+};
+
+
+/***/ }),
+
+/***/ "./src/ValidatorView.private/toggleElements.ts":
+/*!*****************************************************!*\
+  !*** ./src/ValidatorView.private/toggleElements.ts ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.toggleElements = function (mode) {
+    var elements = [];
+    for (var _i = 1; _i < arguments.length; _i++) {
+        elements[_i - 1] = arguments[_i];
+    }
+    var result;
+    if (mode === 'on') {
+        result = false;
+    }
+    else if (mode === 'off') {
+        result = true;
+    }
+    else {
+        throw new Error('mode can be only "on" or "off"');
+    }
+    elements.forEach(function (element) { return element.disabled = result; });
+};
+
+
+/***/ }),
+
+/***/ "./src/doesHaveOnlyDigits.ts":
+/*!***********************************!*\
+  !*** ./src/doesHaveOnlyDigits.ts ***!
+  \***********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.doesHaveOnlyDigits = function (value) {
+    return /^\d+$/.test(value);
+};
+
+
+/***/ }),
+
+/***/ "./src/doesHaveWhitespaces.ts":
+/*!************************************!*\
+  !*** ./src/doesHaveWhitespaces.ts ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var doesHaveWhitespaces = function (string) {
+    return !(string === string.trim());
+};
+exports.default = doesHaveWhitespaces;
 
 
 /***/ }),

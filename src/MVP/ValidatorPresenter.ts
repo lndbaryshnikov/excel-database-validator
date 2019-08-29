@@ -14,6 +14,7 @@ export default class ValidatorPresenter {
 
         this.view.whenValidationStarted(this.validateWorkbook());
         this.model.whenWorkbookValidated(this.renderErrors());
+        this.model.whenConfigurationErrorFound(this.alertErrorMessage());
     }
 
     initialize(): void {
@@ -35,6 +36,12 @@ export default class ValidatorPresenter {
             } else {
                 this.view.showNoErrorsMessage();
             }
+        }
+    }
+
+    alertErrorMessage() {
+        return (error: string): void => {
+            this.view.showErrorMessage(error);
         }
     }
 

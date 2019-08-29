@@ -37,7 +37,7 @@ class Observer implements ObserversStorage{
         throw new Error('Could not find observer in list of observers');
     }
 
-    notifyObservers(data: any): void {
+    notifyObservers(data?: any): void {
         // Make a copy of observer list in case the list
         // is mutated during the notifications.
         const observersSnapshot = this.observers.slice(0);

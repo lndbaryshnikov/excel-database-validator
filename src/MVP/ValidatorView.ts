@@ -2,10 +2,11 @@ import * as XLSX from "xlsx";
 
 import {ErrorObject, Config, FullNameSheetErrors} from "./ValidatorModel";
 import Observer from "../Observer";
-import doesHaveWhitespaces from "../doesHaveWhitespaces";
-import selfDownloadFile from "../selfDownloadFile";
+import * as elements from "../ValidatorView.private/elements"
+import {toggleElements} from "../ValidatorView.private/toggleElements";
+import {doesHaveOnlyDigits} from "../doesHaveOnlyDigits";
 
-interface Elements {
+export interface Elements {
     root: HTMLElement;
     headerArea: {
         wrapper: HTMLDivElement,
@@ -53,10 +54,10 @@ export default class ValidatorView implements  renderValidatorUI {
     private _validationStartedSubject = new Observer();
 
     constructor() {
-        const headerArea = this._createElements().createHeaderArea();
-        const settingsArea = this._createElements().createSettingsArea();
-        const noErrorsMessage = this._createElements().createNoErrorsMessage();
-        const errorsArea = this._createElements().createErrorsArea();
+        const headerArea = elements.createHeaderArea();
+        const settingsArea = elements.createSettingsArea();
+        const noErrorsMessage = elements.createNoErrorsMessage();
+        const errorsArea = elements.createErrorsArea();
 
         this.elements = {
             root: document.body,
@@ -95,23 +96,29 @@ export default class ValidatorView implements  renderValidatorUI {
     }
 
     renderUI(): void {
-
         this.elements.settingsArea.colInputs.secondInput.style.display = 'none';
 
-        this._appendToElem(this.elements.root,
+        elements.appendToElem(this.elements.root,
             this.elements.headerArea.wrapper,
             this.elements.settingsArea.wrapper,
         );
 
-        const handlers = this._createHandlers();
+        this.elements.settingsArea.fileInput.input.onchange =
+            this.elements.settingsArea.modeSelect.select.onchange =
+                this.elements.settingsArea.colInputs.firstInput.oninput =
+                    this.elements.settingsArea.colInputs.secondInput.oninput =
+                        this.elements.settingsArea.listInput.input.oninput = () => {
+                            this._refreshSettingsArea();
+                        };
 
-        handlers.setHandlerForSettingsChange();
-        handlers.setHandlerForRunButtonClick();
+        this.elements.settingsArea.runButton.addEventListener('click', () => {
+            this._validationStartedSubject.notifyObservers();
+        });
     }
 
     whenValidationStarted(callback: (workbook: XLSX.WorkBook, options: Config) => void): void {
         this._validationStartedSubject.addObserver(
-            (workbook: XLSX.WorkBook) => {
+            () => {
                 this.config = {
                     mode: this.elements.settingsArea.modeSelect.select.value,
                     row: '2',
@@ -123,7 +130,23 @@ export default class ValidatorView implements  renderValidatorUI {
                     fileName: this.elements.settingsArea.fileInput.input.files[0].name
                 };
 
-                callback(workbook, this.config);
+                this._toggleSettings('off');
+
+                this._cleanPage();
+
+                const files = this.elements.settingsArea.fileInput.input.files, file = files[0];
+                const reader = new FileReader();
+
+                const that = this;
+
+                reader.onload = function (e) {
+                    // @ts-ignore
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+
+                    callback(workbook, that.config);
+                };
+                reader.readAsArrayBuffer(file);
             }
         );
     }
@@ -144,16 +167,16 @@ export default class ValidatorView implements  renderValidatorUI {
                     list = (currentList as ErrorObject[])[0].list;
                     listName = (currentList as ErrorObject[])[0].listName;
                 }
-                const errorsListBlock = this._createElements().createListErrorsBlock(listName, list);
+                const errorsListBlock = elements.createListErrorsBlock(listName, list);
 
-                this._appendToElem(this.elements.errorsArea.wrapper,
+                elements.appendToElem(this.elements.errorsArea.wrapper,
                     errorsListBlock.wrapper);
 
                 await this._renderListErrors(currentList, errorsListBlock.table, errorsListForm, numeration);
             }
         };
 
-        this._appendToElem(this.elements.root,
+        elements.appendToElem(this.elements.root,
             this.elements.errorsArea.wrapper);
 
         if ( this.config.mode === 'fullName' ) {
@@ -187,7 +210,7 @@ export default class ValidatorView implements  renderValidatorUI {
             }
 
             if ( lackOfNamesErrors !== false ) {
-                this._appendToElem(
+                elements.appendToElem(
                     this.elements.errorsArea.wrapper,
                     this.elements.errorsArea.anotherErrorsSign
                 );
@@ -198,15 +221,15 @@ export default class ValidatorView implements  renderValidatorUI {
             await loopAndRenderErrors(workbookErrors as ErrorObject[][], 'array', 'in-course');
         }
 
-        this.elements.logButton = this._createElements().createLogButton(log);
+        this.elements.logButton = elements.createLogButton(log);
 
-        this._appendToElem(this.elements.settingsArea.wrapper,
+        elements.appendToElem(this.elements.settingsArea.wrapper,
             this.elements.logButton);
 
-        this.toggleSettings('on');
+        this._toggleSettings('on');
     }
 
-    private async _renderListErrors (errorsList: (ErrorObject | ErrorObject[])[], table: HTMLTableElement,
+    private async _renderListErrors(errorsList: (ErrorObject | ErrorObject[])[], table: HTMLTableElement,
                                      listForm: 'array-in-array' | 'array', numeration: 'group' | 'in-course'): Promise<void> {
         const loopAndRenderErrorsArray = async (errors: ErrorObject[],
                                                 table: HTMLTableElement, numeration: 'group' | 'in-course', numberToRender?: number | '') => {
@@ -221,7 +244,7 @@ export default class ValidatorView implements  renderValidatorUI {
                 }
                 if ( numeration === 'in-course' && !numberToRender ) errorNumber = i + 1;
 
-                const tableRow = this._createElements().createRowForErrorsTable(
+                const tableRow = elements.createRowForErrorsTable(
                     errorNumber,
                     currentErrorObject.row,
                     currentErrorObject.value,
@@ -238,7 +261,7 @@ export default class ValidatorView implements  renderValidatorUI {
 
                 await getRowThroughTimeout(tableRow)
                     .then((row: HTMLTableRowElement) => {
-                            this._appendToElem(table, row)
+                            elements.appendToElem(table, row)
                         },
                         null);
 
@@ -258,114 +281,44 @@ export default class ValidatorView implements  renderValidatorUI {
     }
 
     showNoErrorsMessage() {
-        this._appendToElem(this.elements.root,
+        elements.appendToElem(this.elements.root,
             this.elements.noErrorsMessage);
     }
 
-    private _createHandlers() {
-        const isSettingsCorrect = (mode: string, fileInput: HTMLInputElement, modeSelect: HTMLSelectElement,
-                                   firstColInput: HTMLInputElement, secondColInput: HTMLInputElement,
-                                   listInput: HTMLInputElement): boolean => {
-            const doesHaveOnlyDigits = (value: string): boolean => {
-                return /^\d+$/.test(value);
-            };
+    showErrorMessage(error: string): void {
+        alert(error);
+    }
 
-            const isListCorrect = (list: string): boolean => {
-                if ( list === '' ) return true;
+    private _refreshSettingsArea() {
+            const mode: string = this.elements.settingsArea.modeSelect.select.value;
 
-                const noWs = list.replace(/ /g, '');
+            this.elements.settingsArea.runButton.disabled = this._isSettingsCorrect();
 
-                if ( doesHaveOnlyDigits(noWs) ) return true;
-
-                if ( noWs.match(/,/) !== null ) {
-                    if ( doesHaveOnlyDigits(noWs.replace(/,/g, '')) ) {
-                        return true;
-                    }
-                }
-
-                if ( (noWs.match(/-/).length === 1) ) {
-                    if ( doesHaveOnlyDigits(noWs.replace(/-/, '')) ) {
-                        return true;
-                    }
-                }
-
-                return false;
-            };
-
-            if ( mode === 'fullName') {
-                return ( fileInput.files[0] &&
-                       ( modeSelect.selectedIndex !== 0 ) &&
-                       ( doesHaveOnlyDigits(firstColInput.value) ) &&
-                       ( doesHaveOnlyDigits(secondColInput.value) ) &&
-                       ( isListCorrect(listInput.value) )
-                );
+            if (mode !== 'fullName') {
+                this.elements.settingsArea.colInputs.secondInput.style.display = 'none';
+                this.elements.settingsArea.colInputs.firstInput.placeholder = 'Col';
             } else {
-                return ( fileInput.files[0] &&
-                       ( modeSelect.selectedIndex !== 0 ) &&
-                       ( doesHaveOnlyDigits(firstColInput.value) ) &&
-                       ( isListCorrect(listInput.value) )
-                );
+                this.elements.settingsArea.colInputs.secondInput.style.display = 'block';
+                this.elements.settingsArea.colInputs.firstInput.placeholder = 'FN';
             }
-        };
+    };
 
-        const settingsChangeHandler = ():void => {
+    private _isSettingsCorrect(): boolean {
+        const mode: string = this.elements.settingsArea.modeSelect.select.value;
 
-            const handler = () => {
-                const fileInput = this.elements.settingsArea.fileInput.input;
-                const modeSelect = this.elements.settingsArea.modeSelect.select;
-                const firstColInput = this.elements.settingsArea.colInputs.firstInput;
-                const secondColInput = this.elements.settingsArea.colInputs.secondInput;
-                const listInput = this.elements.settingsArea.listInput.input;
-                const runButton = this.elements.settingsArea.runButton;
-
-                const mode: string = this.elements.settingsArea.modeSelect.select.value;
-
-                runButton.disabled = !isSettingsCorrect(mode, fileInput, modeSelect, firstColInput, secondColInput,
-                    listInput);
-
-                if ( mode !== 'fullName' ) {
-                    secondColInput.style.display = 'none';
-                    firstColInput.placeholder = 'Col';
-                } else {
-                    secondColInput.style.display = 'block';
-                    firstColInput.placeholder = 'FN';
-                }
-            };
-
-            this.elements.settingsArea.fileInput.input.onchange =
-              this.elements.settingsArea.modeSelect.select.onchange =
-                this.elements.settingsArea.colInputs.firstInput.oninput =
-                  this.elements.settingsArea.colInputs.secondInput.oninput =
-                    this.elements.settingsArea.listInput.input.oninput = handler;
-        };
-
-        const runButtonClickHandler = (): void => {
-            const handler = () => {
-                this.toggleSettings('off');
-
-                this._cleanPage();
-
-                const files = this.elements.settingsArea.fileInput.input.files, file = files[0];
-                const reader = new FileReader();
-
-                const that = this;
-
-                reader.onload = function (e) {
-                    // @ts-ignore
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-
-                    that._validationStartedSubject.notifyObservers(workbook as any);
-                };
-                reader.readAsArrayBuffer(file);
-            };
-
-            this.elements.settingsArea.runButton.addEventListener('click', handler);
-        };
-
-        return {
-            setHandlerForSettingsChange: settingsChangeHandler,
-            setHandlerForRunButtonClick: runButtonClickHandler
+        if ( mode === 'fullName') {
+            return ( this.elements.settingsArea.fileInput.input.files[0] &&
+                ( this.elements.settingsArea.modeSelect.select.selectedIndex !== 0 ) &&
+                ( doesHaveOnlyDigits(this.elements.settingsArea.colInputs.firstInput.value) ) &&
+                ( doesHaveOnlyDigits(this.elements.settingsArea.colInputs.secondInput.value) ) &&
+                ( this._isListNumberCorrect() )
+            );
+        } else {
+            return ( this.elements.settingsArea.fileInput.input.files[0] &&
+                ( this.elements.settingsArea.modeSelect.select.selectedIndex !== 0 ) &&
+                ( doesHaveOnlyDigits(this.elements.settingsArea.colInputs.firstInput.value) ) &&
+                ( this._isListNumberCorrect() )
+            );
         }
     }
 
@@ -373,7 +326,7 @@ export default class ValidatorView implements  renderValidatorUI {
         if ( this.elements.root.contains(this.elements.errorsArea.wrapper) ) {
             this.elements.errorsArea.wrapper.remove();
 
-            this.elements.errorsArea = this._createElements().createErrorsArea();
+            this.elements.errorsArea = elements.createErrorsArea();
         }
 
         if ( this.elements.root.contains(this.elements.logButton) ) {
@@ -387,417 +340,37 @@ export default class ValidatorView implements  renderValidatorUI {
         }
     }
 
-    private _createElements() {
-        const createWithAttr = (name: string, ...properties: string[][]): HTMLElement => {
-                const element = document.createElement(name);
+    private _isListNumberCorrect(): boolean {
+        const list = this.elements.settingsArea.listInput.input.value;
 
-                properties.forEach((property: string[]) => {
-                    element.setAttribute(property[0], property[1]);
-                });
+        if ( list === '' ) return true;
 
-                return element;
-        };
+        const noWs = list.replace(/ /g, '');
 
-        const createDivWithClass = (className: string): HTMLDivElement => {
-            return createWithAttr('div',
-                ['class', className]
-            ) as HTMLDivElement;
-        };
+        if ( doesHaveOnlyDigits(noWs) ) return true;
 
-        const createHeaderArea = (): Elements['headerArea'] => {
-            const wrapper = createDivWithClass('header-area__wrapper');
-
-            const name = createWithAttr('div',
-                ['class', 'header-area__name']
-            ) as HTMLDivElement;
-            name.innerHTML = 'Exsel Database Validator';
-
-            this._appendToElem(wrapper, name);
-
-            return {
-                wrapper: wrapper,
-                name: name
-            };
-        };
-
-        const createCustomFileInput = (): Elements['settingsArea']['fileInput'] => {
-            const wrapper = createDivWithClass('file-input__wrapper');
-
-            const input = createWithAttr('input',
-                ['class', 'file-input__input'],
-                          ['id', 'file-input__input'],
-                          ['type', 'file'],
-                          ['accept', '.xlsx']
-            ) as HTMLInputElement;
-
-            const label = createWithAttr('label',
-                ['class', 'file-input__label'],
-                          ['for', 'file-input__input']
-            ) as HTMLLabelElement;
-
-            const text = 'Choose a file (only .xlsx)...';
-
-            label.innerHTML = text;
-
-            input.addEventListener('change', () => {
-                const file = (input as HTMLInputElement).files[0];
-
-                if ( !!file ) label.innerHTML = file.name;
-                    else label.innerHTML = text;
-            });
-
-            this._appendToElem(wrapper, input, label);
-
-            return {
-                wrapper: wrapper,
-                input: input
-            };
-        };
-
-        const createModeSelect = (): Elements['settingsArea']['modeSelect'] => {
-            const wrapper = createDivWithClass('mode-select__wrapper');
-
-            const sign = createWithAttr('div',
-                ['class', 'sign mode-select__sign']
-            ) as HTMLDivElement;
-            sign.innerHTML = 'Check for: ';
-
-            const select = createWithAttr('select',
-                ['class', 'mode-select__select']
-            ) as HTMLSelectElement;
-
-            const createOption = (value: string, text: string): HTMLOptionElement => {
-                const option = createWithAttr('option',
-                    ['class', 'mode-select__option'],
-                    ['value', value]
-                ) as HTMLOptionElement;
-
-                option.innerHTML = text;
-
-                return option;
-            };
-
-            this._appendToElem(select,
-                createOption('none', 'Choose...'),
-                createOption('email', 'Email Errors'),
-                createOption('phone', 'Phone Number Errors'),
-                createOption('site', 'Site Address Errors'),
-                createOption('ws', 'Whitespaces'),
-                createOption('numbers', 'Only Numbers Errors'),
-                createOption('fullName', 'FullName Errors')
-            );
-
-            this._appendToElem(wrapper, sign, select);
-
-            return {
-                wrapper: wrapper,
-                select: select
-            }
-        };
-
-        const createColInputs = (): Elements['settingsArea']['colInputs'] => {
-            const wrapper = createDivWithClass('col-inputs__wrapper');
-
-            const sign = createWithAttr('div',
-                ['class', 'sign col-inputs__sign']
-            ) as HTMLDivElement;
-            sign.innerHTML = 'Type column number: ';
-
-            const firstInput = createWithAttr('input',
-                ['class', 'col-inputs__input'],
-                ['type', 'text'],
-                ['placeholder', 'Col']
-            ) as HTMLInputElement;
-
-            const secondInput = createWithAttr('input',
-                ['class', 'col-inputs__input'],
-                ['type', 'text'],
-                ['placeholder', 'SN']
-            ) as HTMLInputElement;
-
-            this._appendToElem(wrapper, sign, firstInput, secondInput);
-
-            return {
-                wrapper: wrapper,
-                firstInput: firstInput,
-                secondInput: secondInput
-            }
-        };
-
-        const createListInput = (): Elements['settingsArea']['listInput'] => {
-            const wrapper = createDivWithClass('list-input__wrapper');
-
-            const sign = createWithAttr('div',
-                ['class', 'sign list-input__sign']
-            ) as HTMLDivElement;
-            sign.innerHTML = 'Type lists number:';
-
-            const input = this._createElements().create('input',
-                ['class', 'list-input__input'],
-                ['type', 'text']
-            ) as HTMLInputElement;
-
-            this._appendToElem(wrapper, sign, input);
-
-            return {
-                wrapper: wrapper,
-                input: input
-            }
-        };
-
-        const createDisabledRunButton = (): Elements['settingsArea']['runButton'] => {
-            const runButton = createWithAttr('button',
-                ['class', 'button run-button'],
-                ['disabled', 'disabled']
-            ) as HTMLButtonElement;
-
-            runButton.innerHTML = 'VALIDATE';
-
-            return runButton;
-        };
-
-        const createSettingsArea = (): Elements['settingsArea'] => {
-            const wrapper = createDivWithClass('settings-wrapper');
-
-            const fileInput = createCustomFileInput();
-            const modeSelect = createModeSelect();
-            const colInputs = createColInputs();
-            const listInput = createListInput();
-            const runButton = createDisabledRunButton();
-
-            this._appendToElem(wrapper,
-                fileInput.wrapper,
-                modeSelect.wrapper,
-                colInputs.wrapper,
-                listInput.wrapper,
-                runButton
-            );
-
-            return {
-                wrapper: wrapper,
-                fileInput: fileInput,
-                modeSelect: modeSelect,
-                colInputs: colInputs,
-                listInput: listInput,
-                runButton: runButton
-            };
-        };
-
-        const createNoErrorsMessage = (): Elements['noErrorsMessage'] => {
-            const message = createWithAttr('div',
-                ['class', 'no-errors-message']
-            ) as HTMLDivElement;
-
-            message.innerHTML = 'No errors were found.';
-
-            return message;
-        };
-
-        const createAnotherErrorsSign = () => {
-            const sign = createWithAttr('div',
-                ['class', 'another-errors-sign']
-            ) as HTMLDivElement;
-            sign.innerHTML = 'Another errors found:';
-
-            return sign;
-        };
-
-        const createErrorsArea = (): Elements['errorsArea'] => {
-            const wrapper = createDivWithClass('error-area__wrapper');
-
-            const sign = createWithAttr('div',
-                ['class', 'error-area__sign']
-            ) as HTMLDivElement;
-
-            const anotherErrorsSign = createAnotherErrorsSign();
-
-            sign.innerHTML = 'Errors list:';
-
-            this._appendToElem(wrapper, sign);
-
-            return {
-                wrapper: wrapper,
-                anotherErrorsSign: anotherErrorsSign
-            };
-        };
-
-        const createListErrorsBlock = (nameOfList: string, numberOfList: string | number)
-            : {wrapper: HTMLDivElement, table: HTMLTableElement} => {
-
-            const wrapper = createDivWithClass('list-errors__wrapper');
-            const listName = createDivWithClass('list-errors__list-name');
-            listName.innerHTML = `List No ${numberOfList} (${nameOfList})`;
-
-            const table = createWithAttr('table',
-                ['class', 'list-errors__table'],
-                ['border', '1px'],
-            ) as HTMLTableElement;
-
-            const header = createWithAttr('tr',
-                ['class', 'list-errors__table-header']
-            ) as HTMLTableRowElement;
-
-            const createHeaderCell = (text: string): HTMLTableCellElement => {
-                const headerCell = createWithAttr('td',
-                    ['class', 'list-errors__cell list-errors__header-cell']
-                ) as HTMLTableCellElement;
-
-                headerCell.innerHTML = text;
-
-                return headerCell;
-            };
-
-            this._appendToElem(header,
-                createHeaderCell('No'),
-                createHeaderCell('ROW'),
-                createHeaderCell('VALUE'),
-                createHeaderCell('ERROR TYPE')
-            );
-
-            this._appendToElem(table, header);
-
-            this._appendToElem(wrapper,
-                listName,
-                table);
-
-            return {
-                wrapper: wrapper,
-                table: table
-            }
-        };
-
-        const createRowForErrorsTable = (number: string | number | null, row: string | number,
-                                         value: string, error: string): HTMLTableRowElement => {
-            const tableRow = createWithAttr('tr',
-                ['class', 'list-errors__table-row'],
-            ) as HTMLTableRowElement;
-
-            const createTableCell = (text: string | null): HTMLTableCellElement => {
-                const tableCell = createWithAttr('td',
-                    ['class', 'list-errors__cell list-errors__table-cell']
-                ) as HTMLTableCellElement;
-
-                if ( !!text ) {
-                    tableCell.innerHTML = text;
-                }
-
-                return tableCell;
-            };
-
-            this._appendToElem(tableRow,
-                createTableCell(!number? null : String(number)),
-                createTableCell(String(row)),
-                createTableCell(value),
-                createTableCell(error)
-            );
-
-            return tableRow;
-        };
-
-        const createLogDownloadButton = (text: string): HTMLButtonElement => {
-            const button = createWithAttr('button',
-            ['class', 'button log-download-button']
-            ) as HTMLButtonElement;
-
-            button.innerHTML = 'Download Report';
-
-            button.addEventListener('click', () => {
-                this._selfDownloadFile('report.txt', text);
-            });
-
-            return button;
-        };
-
-        return {
-            create: createWithAttr,
-            createHeaderArea: createHeaderArea,
-            createSettingsArea: createSettingsArea,
-            createNoErrorsMessage: createNoErrorsMessage,
-            createErrorsArea: createErrorsArea,
-            createListErrorsBlock: createListErrorsBlock,
-            createRowForErrorsTable: createRowForErrorsTable,
-            createAnotherErrorsSign: createAnotherErrorsSign(),
-            createLogButton: createLogDownloadButton
-        }
-    }
-
-    private _selfDownloadFile(filename: string, text: string): void {
-        const element = document.createElement('a');
-
-        element.setAttribute('href',
-            'data:text/plain;charset=utf-8,'
-            + encodeURIComponent(text));
-
-        element.setAttribute('download', filename);
-
-        element.style.display = 'none';
-
-        document.body.appendChild(element);
-
-        element.click();
-
-        document.body.removeChild(element);
-    };
-
-    private _appendToElem(root: HTMLElement, ...elements: HTMLElement[]): void {
-        elements.forEach(element => {
-            root.append(element);
-        });
-    }
-
-    private _toggleElements(mode: string, ...elements: (HTMLInputElement |
-        HTMLSelectElement | HTMLButtonElement)[]): void {
-        let result: boolean;
-
-        if ( mode === 'on' ) {
-            result = false;
-        } else if ( mode ==='off' ) {
-            result = true;
-        } else {
-            throw new Error('mode can be only "on" or "off"');
-        }
-
-        elements.forEach( element => element.disabled = result );
-    };
-
-    private toggleSettings(mode: string): void {
-        const fileInput = this.elements.settingsArea.fileInput.input;
-        const modeSelect = this.elements.settingsArea.modeSelect.select;
-        const firstColInput = this.elements.settingsArea.colInputs.firstInput;
-        const secondColInput = this.elements.settingsArea.colInputs.secondInput;
-        const listInput = this.elements.settingsArea.listInput.input;
-        const runButton = this.elements.settingsArea.runButton;
-
-        this._toggleElements(mode, runButton, fileInput, modeSelect, firstColInput, secondColInput, listInput);
-    }
-
-    private _deleteElementFromDomIfItExists(root: HTMLElement, element: HTMLElement): void {
-        console.log('i\'m here');
-        if ( root.contains(element) ) {
-            console.log(true);
-            root.removeChild(element);
-        }
-    };
-
-    private _cleanElement(element: HTMLElement): void {
-        if ( element.children.length === 0 ) return;
-
-        for (let i = 0; i < element.children.length; i++ ) {
-            element.children[i].remove();
-        }
-    }
-
-    private _doErrorsExist(errors: any[]): boolean {
-        if ( errors.length === 0 ) return false;
-
-        for (let i = 0; i < errors.length; i++) {
-            if ( !Array.isArray(errors[i]) ) {
+        if ( noWs.match(/,/) !== null ) {
+            if ( doesHaveOnlyDigits(noWs.replace(/,/g, '')) ) {
                 return true;
-            } else if ( this._doErrorsExist(errors[i]) ) {
+            }
+        }
+
+        if ( (noWs.match(/-/).length === 1) ) {
+            if ( doesHaveOnlyDigits(noWs.replace(/-/, '')) ) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private _toggleSettings(mode: string): void {
+        toggleElements(mode,
+            this.elements.settingsArea.fileInput.input,
+            this.elements.settingsArea.modeSelect.select,
+            this.elements.settingsArea.colInputs.firstInput,
+            this.elements.settingsArea.colInputs.secondInput,
+            this.elements.settingsArea.listInput.input,
+            this.elements.settingsArea.runButton);
     }
 }

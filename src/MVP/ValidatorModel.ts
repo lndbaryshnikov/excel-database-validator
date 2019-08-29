@@ -2,7 +2,13 @@ import * as XLSX from 'xlsx';
 
 import Observer from "../Observer";
 import removeDiacritics from "../removeDiacritics";
-import {stringify} from "querystring";
+import * as validators from "../ValidatorModel.private/validators"
+import doesHaveWhitespaces from "../doesHaveWhitespaces";
+import {getListsArray} from "../ValidatorModel.private/getListsArray";
+import {doListsFromArrayExist} from "../ValidatorModel.private/doListsFromArrayExist";
+import {doesColExist} from "../ValidatorModel.private/doesColExist";
+import {getCell} from "../ValidatorModel.private/getCell";
+import {addPropertyToErrors} from "../ValidatorModel.private/addPropertyToErrors";
 
 export interface Config {
     mode: string;
@@ -40,81 +46,21 @@ interface ValidateData {
 export default class ValidatorModel implements  ValidateData {
     config: Config;
     private _validationCompletedSubject = new Observer();
+    private _configurationErrorFoundSubject = new Observer();
 
     validateWorkbook(workbook: XLSX.WorkBook): void {
         const sheetNames = workbook.SheetNames;
 
         const workbookErrors:  (ErrorObject[] | FullNameSheetErrors)[] = [];
 
-        const getListsArray = (noWsListNumberFromConfig: string, sheetNames: string[])
-            : {lists: number[], type: string} => {
-            //lists = [first,...., last]: first and last inclusively
-            let lists: number[];
-            let type: 'fullWorkbook' | 'singleList' | 'listsCollection' | 'listsRange';
-
-
-
-            if ( noWsListNumberFromConfig === '' ) {
-                lists = [1, sheetNames.length];
-                type = 'fullWorkbook';
-            }
-
-            if ( /\d+/.test(noWsListNumberFromConfig) ) {
-
-                lists = [Number(noWsListNumberFromConfig), Number(noWsListNumberFromConfig)];
-                type = 'singleList';
-            }
-
-            if ( noWsListNumberFromConfig.match(/,/) !== null ) {
-                const array: string[] = noWsListNumberFromConfig.split(',');
-
-                //CHECK THIS LATER IF LISTS HAVEN'T BECOME NUMBERS
-                lists = array.map((list) => Number(list));
-                type = 'listsCollection'
-            }
-
-            if (noWsListNumberFromConfig.match(/-/) !== null) {
-                if (noWsListNumberFromConfig.match(/-/).length === 1) {
-                    const array: string[] = noWsListNumberFromConfig.split('-');
-
-                    lists = array.map(list => Number(list));
-                    type = 'listsRange';
-                }
-            }
-
-            return {
-                lists: lists,
-                type: type
-            }
-        };
-
-        const doListsFromArrayExist = (listsArray: number[], sheetNames: string[]): {result: boolean, error?: string} => {
-            const createListError = (listNumber: string | number): string => {
-                return `List No ${listNumber} doesn't exist`
-            };
-            let result: boolean = true;
-            let error: string;
-
-            for (let i = 0; i < listsArray.length; i++) {
-                if (!this._doesListExist(listsArray[i], sheetNames)) {
-                    result = false;
-                    error = createListError(listsArray[i]);
-                    break;
-                }
-            }
-
-            return {
-                result: result,
-                error: error
-            };
-        };
-
         //lists = [first,...., last]: first and last inclusively
         //lists - lists from config, not for iteration
         const lists = getListsArray(this.config.list, sheetNames);
 
         if ( doListsFromArrayExist(lists.lists, sheetNames).result === false ) {
-            alert(doListsFromArrayExist(lists.lists, sheetNames).error);
+            const error = doListsFromArrayExist(lists.lists, sheetNames).error;
+
+            this._configurationErrorFoundSubject.notifyObservers(error);
 
             return;
         }
@@ -124,7 +70,7 @@ export default class ValidatorModel implements  ValidateData {
                 if ( this._doColumnsExist(workbook, currentListNumber) !== true ) {
                     const error = this._doColumnsExist(workbook, currentListNumber);
 
-                    alert(error);
+                    this._configurationErrorFoundSubject.notifyObservers(error);
 
                     return;
                 }
@@ -147,7 +93,8 @@ export default class ValidatorModel implements  ValidateData {
             const lastListIterationNumber: number = lists.lists[lists.lists.length - 1] - 1;
 
             if ( firstListIterationNumber > lastListIterationNumber ) {
-                alert('Lists range should go from smaller to larger');
+                this._configurationErrorFoundSubject.notifyObservers
+                    ('Lists range should go from smaller to larger');
 
                 return;
             }
@@ -157,7 +104,7 @@ export default class ValidatorModel implements  ValidateData {
                 if ( this._doColumnsExist(workbook, currentListIterationNumber + 1) !== true ) {
                     const error = this._doColumnsExist(workbook, currentListIterationNumber);
 
-                    alert(error);
+                    this._configurationErrorFoundSubject.notifyObservers(error);
 
                     return;
                 }
@@ -194,6 +141,12 @@ export default class ValidatorModel implements  ValidateData {
                 }
             }
         );
+    }
+
+    whenConfigurationErrorFound(callback: (error: string) => void): void {
+        this._configurationErrorFoundSubject.addObserver((error: string): void => {
+            callback(error);
+        });
     }
 
     createLog(workbookErrors: ErrorObject[][] | FullNameSheetErrors[], fileName: string): string {
@@ -301,10 +254,6 @@ export default class ValidatorModel implements  ValidateData {
         return text;
     }
 
-    set options(options: Config) {
-        this.config = options;
-    }
-
     private _validateSheet(sheet: XLSX.WorkSheet): ErrorObject[] | FullNameSheetErrors | false {
         const range: XLSX.Range = XLSX.utils.decode_range(sheet['!ref']);
 
@@ -318,7 +267,7 @@ export default class ValidatorModel implements  ValidateData {
         let colForIteration = Number(this.config.cols.firstCol) - 1;
 
         for (rowForIteration; rowForIteration < range.e.r; rowForIteration++) {
-            const cell = this._getCell(sheet, rowForIteration, colForIteration);
+            const cell = getCell(sheet, rowForIteration, colForIteration);
 
             if ( typeof cell === 'undefined' ) continue;
 
@@ -370,14 +319,14 @@ export default class ValidatorModel implements  ValidateData {
 
         const mode = this.config.mode;
 
-        if ( mode === "email"   )  isValid = this._isEmailValid(trimmedCellValue);
-        if ( mode === "phone"   )  isValid = this._isPhoneNumberValid(trimmedCellValue);
-        if ( mode === "site"    )  isValid = this._isSiteAddressValid(trimmedCellValue);
-        if ( mode === "numbers" )  isValid = this._isOnlyNumbersValid(trimmedCellValue);
+        if ( mode === "email"   )  isValid = validators.isEmailValid(trimmedCellValue);
+        if ( mode === "phone"   )  isValid = validators.isPhoneNumberValid(trimmedCellValue);
+        if ( mode === "site"    )  isValid = validators.isSiteAddressValid(trimmedCellValue);
+        if ( mode === "numbers" )  isValid = validators.isOnlyNumbersValid(trimmedCellValue);
         if ( mode === "ws"      )  isValid = true;
 
-        if ( this._doesHaveWhitespaces(cellValue) || !isValid) {
-            if (!isValid && this._doesHaveWhitespaces(cellValue)) {
+        if ( doesHaveWhitespaces(cellValue) || !isValid) {
+            if (!isValid && doesHaveWhitespaces(cellValue)) {
                 error = "incorrect/whitespaces";
             } else if (!isValid) {
                 error = "incorrect";
@@ -406,15 +355,11 @@ export default class ValidatorModel implements  ValidateData {
         const fullNames: string[] = [];
 
         for (let i = Number(this.config.row) - 1; i < end; i++) {
-            const firstName = !!this._getCell( sheet, i, Number(firstNameCol) - 1 ) ?
-                (this._getCell( sheet, i, Number(firstNameCol) - 1 ).v as string).trim() : undefined;
+            const firstName = !!getCell( sheet, i, Number(firstNameCol) - 1 ) ?
+                (getCell( sheet, i, Number(firstNameCol) - 1 ).v as string).trim() : undefined;
 
-            const secondName = !!this._getCell( sheet, i, Number(secondNameCol) -  1 ) ?
-                (this._getCell( sheet, i, Number(secondNameCol) - 1 ).v as string).trim() : undefined;
-
-            // const isOnlyWS = (string: string) => {
-            //     return string.replace(/ /g, '') === '';
-            // };
+            const secondName = !!getCell( sheet, i, Number(secondNameCol) -  1 ) ?
+                (getCell( sheet, i, Number(secondNameCol) - 1 ).v as string).trim() : undefined;
 
             if ( !firstName || !secondName ) {
                 if( !firstName && !secondName ) {
@@ -524,68 +469,29 @@ export default class ValidatorModel implements  ValidateData {
         return false;
     }
 
-    private _doesListExist(list: number, sheetNames: string[] ): boolean {
-        if ( list > 0 && list <= sheetNames.length ) return true;
-    }
-
-    private _doesColExist(col: number, range: XLSX.Range): boolean {
-        return ( col >= (range.s.c + 1) && col <= (range.e.c + 1) );
-    }
-
-    private _doColumnsExist(workbook: XLSX.WorkBook, listNumber: number): string | true {
+    private  _doColumnsExist(workbook: XLSX.WorkBook, listNumber: number): string | true {
         const sheetNames = workbook.SheetNames;
         const sheet = workbook.Sheets[sheetNames[listNumber]];
         const range: XLSX.Range = XLSX.utils.decode_range(sheet['!ref']);
 
         const list = `list No ${listNumber}`;
 
-        const firstColHere: boolean = this._doesColExist(Number(this.config.cols.firstCol), range);
+        const firstColHere: boolean = doesColExist(Number(this.config.cols.firstCol), range);
 
         if ( !firstColHere ) {
             return `Column No ${this.config.cols.firstCol} doesn't exist on ${list}`;
         }
 
-        const secondColHere: boolean = this._doesColExist(Number(this.config.cols.secondCol), range);
+        const secondColHere: boolean = doesColExist(Number(this.config.cols.secondCol), range);
 
         if ( this.config.mode === 'fullName'  && !secondColHere ) {
             return `Column No ${this.config.cols.secondCol} doesn't exist on ${list}`
         }
 
         return true;
-}
-
-    private _getCell(sheet: XLSX.Sheet, row: number, col: number): XLSX.CellObject {
-        return sheet[ XLSX.utils.encode_cell({r: row, c: col}) ];
-    };
-
-    private _createErrorObject(row: string, col: string, value: string, error: string,
-                               list: string, listName: string, fileName: string): ErrorObject {
-        return {
-            row: row,
-            col: col,
-            value: value,
-            error: error,
-            list: list,
-            listName: listName,
-            fileName: fileName
-        }
     }
 
     private _addListPropertiesToErrors(errors: FullNameSheetErrors | ErrorObject[], listNumber: string, listName: string): void {
-
-        const addPropertyToErrors = (errors: any[], property: string, value: string) => {
-            for (let i = 0; i < errors.length; i++) {
-                if (errors[i] === undefined) continue;
-
-                if (Array.isArray(errors[i])) {
-                    addPropertyToErrors(errors[i], property, value);
-
-                    continue;
-                }
-                errors[i][property] = value;
-            }
-        };
-
         if ( this.config.mode === 'fullName' ) {
             let key: keyof FullNameSheetErrors;
 
@@ -605,52 +511,5 @@ export default class ValidatorModel implements  ValidateData {
             listNumber);
         addPropertyToErrors(errors as ErrorObject[], 'listName',
             listName);
-    }
-
-    private _isEmailValid(trimmedEmail: string) {
-        const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-
-        return re.test(trimmedEmail.toLowerCase());
-    }
-
-    private _isPhoneNumberValid(trimmedPhone: string) {
-        const re = /^[0-9]{1,3} [0-9]+$/;
-
-        const encodedPhone = encodeURIComponent(trimmedPhone)
-            .replace('%C2%A0', '%20');
-
-        trimmedPhone = decodeURIComponent(encodedPhone);
-
-        return re.test(String(trimmedPhone));
-    }
-
-    private _isSiteAddressValid(trimmedAddress: string) {
-        const re = /(^https?:\/\/)|(www\.)[a-z0-9~_\-\.]+\.[a-z]{2,9}(\/|:|\?[!-~]*)?$/i;
-
-        return re.test(trimmedAddress);
-    }
-
-    private _isOnlyNumbersValid(trimmedNumber: string) {
-        const re = /^[0-9]+$/;
-
-        return re.test(trimmedNumber);
-    }
-
-    private _doesHaveWhitespaces(string: string) {
-        return !(string === string.trim());
-    }
-
-    private _doErrorsExist(errors: any[]): boolean {
-        if ( errors.length === 0 ) return false;
-
-        for (let i = 0; i < errors.length; i++) {
-            if ( !Array.isArray(errors[i]) ) {
-                return true;
-            } else if ( this._doErrorsExist(errors[i]) ) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
