@@ -11,7 +11,7 @@ import {getCell} from "../ValidatorModel.private/getCell";
 import {addPropertyToErrors} from "../ValidatorModel.private/addPropertyToErrors";
 
 export interface Config {
-    mode: string;
+    mode: 'none' | 'email' | 'phone' | 'site' | 'ws' | 'numbers' | 'fullName';
     row: string
     cols: {
         firstCol: string;
@@ -40,7 +40,6 @@ interface ValidateData {
     config: Config;
 
     validateWorkbook(workbook: XLSX.WorkBook): void;
-    whenWorkbookValidated(callback: (workbookErrors: ErrorObject[][] | FullNameSheetErrors[] | false, log?: string | false) => void): void;
 }
 
 export default class ValidatorModel implements  ValidateData {
@@ -101,7 +100,7 @@ export default class ValidatorModel implements  ValidateData {
 
             for (let currentListIterationNumber = firstListIterationNumber;
                  currentListIterationNumber <= lastListIterationNumber; currentListIterationNumber++) {
-                if ( this._doColumnsExist(workbook, currentListIterationNumber + 1) !== true ) {
+                if ( this._doColumnsExist(workbook, currentListIterationNumber) !== true ) {
                     const error = this._doColumnsExist(workbook, currentListIterationNumber);
 
                     this._configurationErrorFoundSubject.notifyObservers(error);
@@ -129,15 +128,14 @@ export default class ValidatorModel implements  ValidateData {
         }
     }
 
-    whenWorkbookValidated(callback: (workbookErrors: ErrorObject[][] | FullNameSheetErrors[] | false, log?: string | false) => void): void {
+    whenWorkbookValidated(errorsFoundCallback: (workbookErrors: ErrorObject[][] | FullNameSheetErrors[], config: Config) => void,
+                          noErrorsFoundCallback: () => void): void {
         this._validationCompletedSubject.addObserver(
             (workbookErrors: ErrorObject[][] | FullNameSheetErrors[] | false) => {
                 if ( workbookErrors!== false ) {
-                    const log = this.createLog(workbookErrors, this.config.fileName);
-
-                    callback(workbookErrors, log as string);
+                    errorsFoundCallback(workbookErrors, this.config);
                 } else {
-                    callback(false);
+                    noErrorsFoundCallback();
                 }
             }
         );
@@ -147,111 +145,6 @@ export default class ValidatorModel implements  ValidateData {
         this._configurationErrorFoundSubject.addObserver((error: string): void => {
             callback(error);
         });
-    }
-
-    createLog(workbookErrors: ErrorObject[][] | FullNameSheetErrors[], fileName: string): string {
-        const convertFullNameErrors = (errorsArray: FullNameSheetErrors[]):
-            {lackOfNamesErrors: ErrorObject[][] | false; matchErrors: ErrorObject[][][] | false;} => {
-            let lackOfNames: ErrorObject[][] | false = [];
-            let match: ErrorObject[][][] | false= [];
-
-            errorsArray.forEach( (errorObject) => {
-                if ( errorObject.lackOfNamesErrors !== false ) (lackOfNames as ErrorObject[][]).push(errorObject.lackOfNamesErrors);
-                if ( errorObject.matchErrors !== false ) (match as ErrorObject[][][]).push(errorObject.matchErrors);
-            });
-
-            if ( lackOfNames.length === 0 ) lackOfNames = false;
-            if ( match.length === 0 ) match = false;
-
-
-            return {
-                lackOfNamesErrors: lackOfNames,
-                matchErrors: match
-            }
-        };
-
-        const createLogForErrorsArray = (errorsArray: ErrorObject[], numeration: 'group' | 'in-course',
-                                      errorNumber?: number | undefined) => {
-            let text: string = '';
-
-            for (let i = 0; i < errorsArray.length; i++) {
-                let logNumber: string;
-
-                if ( numeration === 'group' && !!errorNumber ) {
-                    logNumber = String(errorNumber);
-                }
-                if ( numeration === 'in-course' && !errorNumber ) logNumber = String(i + 1);
-
-                // if ( !logNumber ) logNumber = '';
-
-                const currentError = errorsArray[i];
-                text += "" + logNumber + " - "
-                    + currentError.row + " - "
-                    + currentError.value + " - "
-                    + currentError.error + "\r\n";
-
-                // errorNumber = undefined;
-            }
-
-            return text;
-        };
-
-        const createLogForErrors = (workbookErrors: ErrorObject[][] | ErrorObject[][][],
-                                 errorsArrayForm: 'array-in-array' | 'array') => {
-            let text: string = '';
-
-            for (let i = 0; i < workbookErrors.length; i++) {
-                const currentList = workbookErrors[i];
-
-                let list, listName;
-                if ( Array.isArray(currentList[i]) ) {
-                    list = ((currentList as ErrorObject[][])[0][0]).list;
-                    listName = ((currentList as ErrorObject[][])[0][0]).listName;
-                } else {
-                    list = ((currentList as ErrorObject[])[0]).list;
-                    listName = ((currentList as ErrorObject[])[0]).listName;
-                }
-
-                text += "\r\n\r\nLis No" + list + "(" + listName + ")\r\n";
-                text += "No - ROW - VALUE - ERROR TYPE\r\n\r\n";
-
-                if ( errorsArrayForm === 'array-in-array' ) {
-                    for (let i = 0; i < (currentList as ErrorObject[][]).length; i++) {
-                        text += createLogForErrorsArray((currentList as ErrorObject[][])[i], 'group', i + 1);
-                    }
-                }
-
-                if ( errorsArrayForm === 'array' ) {
-                    text += createLogForErrorsArray((currentList as ErrorObject[]), 'in-course')
-                }
-            }
-
-            return text;
-        };
-
-        let text = "Errors for \"" + fileName + "\":";
-
-        if ( this.config.mode === 'fullName' ) {
-            const errors = convertFullNameErrors(workbookErrors as FullNameSheetErrors[]);
-
-            const matchErrors = errors.matchErrors;
-            const lackOfNamesErrors = errors.lackOfNamesErrors;
-
-            if ( matchErrors !== false ) {
-                text += createLogForErrors(matchErrors, 'array-in-array');
-            }
-
-            if ( lackOfNamesErrors !== false ) {
-                text += "\r\n\r\n Another errors: \r\n\r\n";
-
-                text += createLogForErrors(lackOfNamesErrors, 'array');
-            }
-
-        } else {
-            text += createLogForErrors((workbookErrors as ErrorObject[][]), 'array');
-        }
-
-        return text;
     }
 
     private _validateSheet(sheet: XLSX.WorkSheet): ErrorObject[] | FullNameSheetErrors | false {

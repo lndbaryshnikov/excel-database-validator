@@ -27,6 +27,7 @@ import "./run-button.css"
 
 import "./errors_area/error-area__wrapper.css"
 import "./errors_area/error-area__sign.css"
+import "./errors_area/errors-area__another-errors-sign.css"
 
 import "./log-download-button.css"
 

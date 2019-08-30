@@ -2,7 +2,7 @@ import ValidatorModel from "./MVP/ValidatorModel";
 import ValidatorView from "./MVP/ValidatorView";
 import ValidatorPresenter from "./MVP/ValidatorPresenter";
 
-import './MVP/styles/styles'
+import './styles/styles'
 
 const model = new ValidatorModel();
 const view = new ValidatorView();

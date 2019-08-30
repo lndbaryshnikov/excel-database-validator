@@ -1,10 +1,12 @@
 import * as XLSX from "xlsx";
 
-import {ErrorObject, Config, FullNameSheetErrors} from "./ValidatorModel";
+import {Config} from "./ValidatorModel";
 import Observer from "../Observer";
 import * as elements from "../ValidatorView.private/elements"
 import {toggleElements} from "../ValidatorView.private/toggleElements";
 import {doesHaveOnlyDigits} from "../doesHaveOnlyDigits";
+import ErrorsView from "./ErrorsView";
+import LogView from "./LogView";
 
 export interface Elements {
     root: HTMLElement;
@@ -34,17 +36,14 @@ export interface Elements {
         runButton: HTMLButtonElement;
     }
     noErrorsMessage: HTMLDivElement;
-    errorsArea: {
-        wrapper: HTMLDivElement;
-        anotherErrorsSign: HTMLDivElement;
-    };
-    logButton: HTMLButtonElement | null;
+    errorsArea: HTMLDivElement;
+    logButton: null | HTMLElement;
 }
 
 interface renderValidatorUI {
     elements: Elements;
     renderUI(): void;
-    renderErrors(workbookErrors: ErrorObject[][]): void,
+    renderErrors(errorsView: ErrorsView, logView: LogView): Promise<void>,
     whenValidationStarted(callback: (workbook: XLSX.WorkBook, options: Config) => void): void;
 }
 
@@ -56,8 +55,8 @@ export default class ValidatorView implements  renderValidatorUI {
     constructor() {
         const headerArea = elements.createHeaderArea();
         const settingsArea = elements.createSettingsArea();
+        const errorsArea = document.createElement('div');
         const noErrorsMessage = elements.createNoErrorsMessage();
-        const errorsArea = elements.createErrorsArea();
 
         this.elements = {
             root: document.body,
@@ -87,10 +86,7 @@ export default class ValidatorView implements  renderValidatorUI {
                 runButton: settingsArea.runButton,
             },
             noErrorsMessage: noErrorsMessage,
-            errorsArea: {
-                wrapper: errorsArea.wrapper,
-                anotherErrorsSign: errorsArea.anotherErrorsSign
-            },
+            errorsArea: errorsArea,
             logButton: null
         };
     }
@@ -120,7 +116,7 @@ export default class ValidatorView implements  renderValidatorUI {
         this._validationStartedSubject.addObserver(
             () => {
                 this.config = {
-                    mode: this.elements.settingsArea.modeSelect.select.value,
+                    mode: this.elements.settingsArea.modeSelect.select.value as Config['mode'],
                     row: '2',
                     cols: {
                         firstCol: this.elements.settingsArea.colInputs.firstInput.value,
@@ -151,133 +147,16 @@ export default class ValidatorView implements  renderValidatorUI {
         );
     }
 
-    async renderErrors(workbookErrors: ErrorObject[][] | FullNameSheetErrors[], log?: string): Promise<void> {
-        const loopAndRenderErrors = async (workbookErrors: ErrorObject[][] | ErrorObject[][][],
-                                           errorsListForm: 'array-in-array' | 'array', numeration: 'group' | 'in-course'): Promise<void> => {
-            for (let i = 0; i < workbookErrors.length; i++) {
-                const currentList = workbookErrors[i];
+    async renderErrors(errorsView: ErrorsView, logView: LogView): Promise<void> {
+        this.elements.root.append(this.elements.errorsArea);
 
-                if ( currentList.length === 0 ) continue;
+        await errorsView.render(this.elements.errorsArea);
 
-                let list, listName;
-                if ( Array.isArray(currentList[i]) ) {
-                    list = (currentList as ErrorObject[][])[0][0].list;
-                    listName = (currentList as ErrorObject[][])[0][0].listName;
-                } else {
-                    list = (currentList as ErrorObject[])[0].list;
-                    listName = (currentList as ErrorObject[])[0].listName;
-                }
-                const errorsListBlock = elements.createListErrorsBlock(listName, list);
+        this.elements.logButton = logView.html;
 
-                elements.appendToElem(this.elements.errorsArea.wrapper,
-                    errorsListBlock.wrapper);
-
-                await this._renderListErrors(currentList, errorsListBlock.table, errorsListForm, numeration);
-            }
-        };
-
-        elements.appendToElem(this.elements.root,
-            this.elements.errorsArea.wrapper);
-
-        if ( this.config.mode === 'fullName' ) {
-            const convertFullNameErrors = (errorsArray: FullNameSheetErrors[]):
-                {lackOfNamesErrors: ErrorObject[][] | false; matchErrors: ErrorObject[][][] | false;} => {
-                let lackOfNames: ErrorObject[][] | false = [];
-                let match: ErrorObject[][][] | false = [];
-
-                errorsArray.forEach( (errorObject) => {
-                    if ( errorObject.lackOfNamesErrors !== false ) (lackOfNames as ErrorObject[][]).push(errorObject.lackOfNamesErrors);
-
-                    if ( errorObject.matchErrors !== false ) (match as ErrorObject[][][]).push(errorObject.matchErrors);
-                });
-
-                if ( lackOfNames.length === 0 ) lackOfNames = false;
-                if ( match.length === 0 ) match = false;
-
-                return {
-                    lackOfNamesErrors: lackOfNames,
-                    matchErrors: match
-                }
-            };
-
-            const errors = convertFullNameErrors(workbookErrors as FullNameSheetErrors[]);
-
-            const matchErrors = errors.matchErrors;
-            const lackOfNamesErrors = errors.lackOfNamesErrors;
-
-            if ( matchErrors !== false ) {
-                await loopAndRenderErrors(matchErrors, 'array-in-array', 'group');
-            }
-
-            if ( lackOfNamesErrors !== false ) {
-                elements.appendToElem(
-                    this.elements.errorsArea.wrapper,
-                    this.elements.errorsArea.anotherErrorsSign
-                );
-
-                await loopAndRenderErrors(lackOfNamesErrors, 'array', 'in-course');
-            }
-        } else {
-            await loopAndRenderErrors(workbookErrors as ErrorObject[][], 'array', 'in-course');
-        }
-
-        this.elements.logButton = elements.createLogButton(log);
-
-        elements.appendToElem(this.elements.settingsArea.wrapper,
-            this.elements.logButton);
+        logView.render(this.elements.settingsArea.wrapper);
 
         this._toggleSettings('on');
-    }
-
-    private async _renderListErrors(errorsList: (ErrorObject | ErrorObject[])[], table: HTMLTableElement,
-                                     listForm: 'array-in-array' | 'array', numeration: 'group' | 'in-course'): Promise<void> {
-        const loopAndRenderErrorsArray = async (errors: ErrorObject[],
-                                                table: HTMLTableElement, numeration: 'group' | 'in-course', numberToRender?: number | '') => {
-
-            for (let i = 0; i < errors.length; i++) {
-                const currentErrorObject = errors[i] as ErrorObject;
-
-                let errorNumber;
-
-                if ( numeration === 'group' && !!numberToRender ) {
-                    errorNumber = numberToRender;
-                }
-                if ( numeration === 'in-course' && !numberToRender ) errorNumber = i + 1;
-
-                const tableRow = elements.createRowForErrorsTable(
-                    errorNumber,
-                    currentErrorObject.row,
-                    currentErrorObject.value,
-                    currentErrorObject.error
-                );
-
-                const getRowThroughTimeout = async (row: HTMLTableRowElement) => {
-                    return new Promise(resolve => {
-                        setTimeout(() => {
-                            resolve(row);
-                        }, 200);
-                    });
-                };
-
-                await getRowThroughTimeout(tableRow)
-                    .then((row: HTMLTableRowElement) => {
-                            elements.appendToElem(table, row)
-                        },
-                        null);
-
-                numberToRender = undefined;
-            }
-        };
-
-        if ( listForm === 'array-in-array' ) {
-            for (let i = 0; i < (errorsList as ErrorObject[][]).length; i++) {
-                await loopAndRenderErrorsArray((errorsList as ErrorObject[][])[i], table, numeration, i + 1);
-            }
-        }
-
-        if ( listForm === 'array' ) {
-            await loopAndRenderErrorsArray((errorsList as ErrorObject[]), table, numeration);
-        }
     }
 
     showNoErrorsMessage() {
@@ -285,14 +164,16 @@ export default class ValidatorView implements  renderValidatorUI {
             this.elements.noErrorsMessage);
     }
 
-    showErrorMessage(error: string): void {
+    processErrorMessage(error: string): void {
         alert(error);
+
+        this._toggleSettings('on');
     }
 
     private _refreshSettingsArea() {
             const mode: string = this.elements.settingsArea.modeSelect.select.value;
 
-            this.elements.settingsArea.runButton.disabled = this._isSettingsCorrect();
+            this.elements.settingsArea.runButton.disabled = !this._isSettingsCorrect();
 
             if (mode !== 'fullName') {
                 this.elements.settingsArea.colInputs.secondInput.style.display = 'none';
@@ -323,10 +204,10 @@ export default class ValidatorView implements  renderValidatorUI {
     }
 
     private _cleanPage() {
-        if ( this.elements.root.contains(this.elements.errorsArea.wrapper) ) {
-            this.elements.errorsArea.wrapper.remove();
+        if ( this.elements.root.contains(this.elements.errorsArea) ) {
+            this.elements.errorsArea.remove();
 
-            this.elements.errorsArea = elements.createErrorsArea();
+            this.elements.errorsArea = document.createElement('div');
         }
 
         if ( this.elements.root.contains(this.elements.logButton) ) {

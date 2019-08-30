@@ -34009,6 +34009,502 @@ var XLS = XLSX, ODS = XLSX;
 
 /***/ }),
 
+/***/ "./src/MVP/ErrorsPresenter.ts":
+/*!************************************!*\
+  !*** ./src/MVP/ErrorsPresenter.ts ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var ErrorsPresenter = /** @class */ (function () {
+    function ErrorsPresenter(view) {
+        this.view = view;
+    }
+    ErrorsPresenter.prototype.initialize = function (workBookErrors, config) {
+        this.view.workbookErrors = workBookErrors;
+        this.view.config = config;
+    };
+    return ErrorsPresenter;
+}());
+exports.default = ErrorsPresenter;
+
+
+/***/ }),
+
+/***/ "./src/MVP/ErrorsView.ts":
+/*!*******************************!*\
+  !*** ./src/MVP/ErrorsView.ts ***!
+  \*******************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (_) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var elements = __importStar(__webpack_require__(/*! ../ValidatorView.private/elements */ "./src/ValidatorView.private/elements.ts"));
+var Observer_1 = __importDefault(__webpack_require__(/*! ../Observer */ "./src/Observer.ts"));
+var ErrorsView = /** @class */ (function () {
+    function ErrorsView() {
+        this._errorsRenderedSubject = new Observer_1.default();
+        var errorsArea = elements.createErrorsArea();
+        this.elements = {
+            errorsArea: {
+                wrapper: errorsArea.wrapper,
+                anotherErrorsSign: errorsArea.anotherErrorsSign
+            }
+        };
+    }
+    ErrorsView.prototype.render = function (root) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        this.root = root;
+                        if (!(this.config.mode === 'fullName')) return [3 /*break*/, 2];
+                        return [4 /*yield*/, this._renderFullNameErrors()];
+                    case 1:
+                        _a.sent();
+                        return [3 /*break*/, 4];
+                    case 2: return [4 /*yield*/, this._renderSingleCellErrors()];
+                    case 3:
+                        _a.sent();
+                        _a.label = 4;
+                    case 4: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    ErrorsView.prototype.whenErrorsRendered = function () {
+        this._errorsRenderedSubject.addObserver(function () {
+        });
+    };
+    ErrorsView.prototype._renderSingleCellErrors = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (!Array.isArray(this.workbookErrors)) {
+                            throw new Error('WorkBook Errors are not assignable to required format');
+                        }
+                        elements.appendToElem(this.root, this.elements.errorsArea.wrapper);
+                        return [4 /*yield*/, this._loopAndRenderErrors(this.workbookErrors, 'array', 'in-course')];
+                    case 1:
+                        _a.sent();
+                        this._errorsRenderedSubject.notifyObservers();
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
+    ErrorsView.prototype._renderFullNameErrors = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var matchErrors, lackOfNamesErrors;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (Array.isArray(this.workbookErrors)) {
+                            throw new Error('WorkBook Errors are not assignable to required format');
+                        }
+                        matchErrors = this.workbookErrors.matchErrors;
+                        lackOfNamesErrors = this.workbookErrors.lackOfNamesErrors;
+                        elements.appendToElem(this.root, this.elements.errorsArea.wrapper);
+                        if (!(matchErrors !== false)) return [3 /*break*/, 2];
+                        return [4 /*yield*/, this._loopAndRenderErrors(matchErrors, 'array-in-array', 'group')];
+                    case 1:
+                        _a.sent();
+                        _a.label = 2;
+                    case 2:
+                        if (!(lackOfNamesErrors !== false)) return [3 /*break*/, 4];
+                        elements.appendToElem(this.elements.errorsArea.wrapper, this.elements.errorsArea.anotherErrorsSign);
+                        return [4 /*yield*/, this._loopAndRenderErrors(lackOfNamesErrors, 'array', 'in-course')];
+                    case 3:
+                        _a.sent();
+                        _a.label = 4;
+                    case 4:
+                        this._errorsRenderedSubject.notifyObservers();
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
+    ErrorsView.prototype._loopAndRenderErrors = function (workbookErrors, errorsListForm, numeration) {
+        return __awaiter(this, void 0, void 0, function () {
+            var i, currentList, list, listName, errorsListBlock;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        i = 0;
+                        _a.label = 1;
+                    case 1:
+                        if (!(i < workbookErrors.length)) return [3 /*break*/, 4];
+                        currentList = workbookErrors[i];
+                        if (currentList.length === 0)
+                            return [3 /*break*/, 3];
+                        list = void 0, listName = void 0;
+                        if (Array.isArray(currentList[i])) {
+                            list = currentList[0][0].list;
+                            listName = currentList[0][0].listName;
+                        }
+                        else {
+                            list = currentList[0].list;
+                            listName = currentList[0].listName;
+                        }
+                        errorsListBlock = elements.createListErrorsBlock(listName, list);
+                        elements.appendToElem(this.elements.errorsArea.wrapper, errorsListBlock.wrapper);
+                        return [4 /*yield*/, this._renderListErrors(currentList, errorsListBlock.table, errorsListForm, numeration)];
+                    case 2:
+                        _a.sent();
+                        _a.label = 3;
+                    case 3:
+                        i++;
+                        return [3 /*break*/, 1];
+                    case 4: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    ErrorsView.prototype._renderListErrors = function (errorsList, table, listForm, numeration) {
+        return __awaiter(this, void 0, void 0, function () {
+            var loopAndRenderErrorsArray, i;
+            var _this = this;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        loopAndRenderErrorsArray = function (errors, table, numeration, numberToRender) { return __awaiter(_this, void 0, void 0, function () {
+                            var i, currentErrorObject, errorNumber, tableRow, getRowThroughTimeout;
+                            var _this = this;
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0:
+                                        i = 0;
+                                        _a.label = 1;
+                                    case 1:
+                                        if (!(i < errors.length)) return [3 /*break*/, 4];
+                                        currentErrorObject = errors[i];
+                                        errorNumber = void 0;
+                                        if (numeration === 'group' && !!numberToRender) {
+                                            errorNumber = numberToRender;
+                                        }
+                                        if (numeration === 'in-course' && !numberToRender)
+                                            errorNumber = i + 1;
+                                        tableRow = elements.createRowForErrorsTable(errorNumber, currentErrorObject.row, currentErrorObject.value, currentErrorObject.error);
+                                        getRowThroughTimeout = function (row) { return __awaiter(_this, void 0, void 0, function () {
+                                            return __generator(this, function (_a) {
+                                                return [2 /*return*/, new Promise(function (resolve) {
+                                                        setTimeout(function () {
+                                                            resolve(row);
+                                                        }, 200);
+                                                    })];
+                                            });
+                                        }); };
+                                        return [4 /*yield*/, getRowThroughTimeout(tableRow)
+                                                .then(function (row) {
+                                                elements.appendToElem(table, row);
+                                            }, null)];
+                                    case 2:
+                                        _a.sent();
+                                        numberToRender = undefined;
+                                        _a.label = 3;
+                                    case 3:
+                                        i++;
+                                        return [3 /*break*/, 1];
+                                    case 4: return [2 /*return*/];
+                                }
+                            });
+                        }); };
+                        if (!(listForm === 'array-in-array')) return [3 /*break*/, 4];
+                        i = 0;
+                        _a.label = 1;
+                    case 1:
+                        if (!(i < errorsList.length)) return [3 /*break*/, 4];
+                        return [4 /*yield*/, loopAndRenderErrorsArray(errorsList[i], table, numeration, i + 1)];
+                    case 2:
+                        _a.sent();
+                        _a.label = 3;
+                    case 3:
+                        i++;
+                        return [3 /*break*/, 1];
+                    case 4:
+                        if (!(listForm === 'array')) return [3 /*break*/, 6];
+                        return [4 /*yield*/, loopAndRenderErrorsArray(errorsList, table, numeration)];
+                    case 5:
+                        _a.sent();
+                        _a.label = 6;
+                    case 6: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    return ErrorsView;
+}());
+exports.default = ErrorsView;
+
+
+/***/ }),
+
+/***/ "./src/MVP/LogModel.ts":
+/*!*****************************!*\
+  !*** ./src/MVP/LogModel.ts ***!
+  \*****************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var Observer_1 = __importDefault(__webpack_require__(/*! ../Observer */ "./src/Observer.ts"));
+var LogModel = /** @class */ (function () {
+    function LogModel() {
+        this._logCreatedSubject = new Observer_1.default();
+    }
+    LogModel.prototype.whenLogCreated = function (callback) {
+        this._logCreatedSubject.addObserver(function (log) {
+            callback(log);
+        });
+    };
+    Object.defineProperty(LogModel.prototype, "errors", {
+        set: function (workbookErrors) {
+            this.workbookErrors = workbookErrors;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    LogModel.prototype.createLogForSingleCellErrors = function () {
+        if (!Array.isArray(this.workbookErrors)) {
+            throw new Error('WorkBook Errors are not assignable to required format');
+        }
+        var text = "Errors for \"" + this.workbookErrors[0][0].fileName + "\":";
+        text += this._createLogForErrors(this.workbookErrors, 'array');
+        this._logCreatedSubject.notifyObservers(text);
+    };
+    LogModel.prototype.createLogForConvertedFullNameErrors = function () {
+        if (Array.isArray(this.workbookErrors)) {
+            throw new Error('WorkBook Errors are not assignable to required format');
+        }
+        var matchErrors = this.workbookErrors.matchErrors;
+        var lackOfNamesErrors = this.workbookErrors.lackOfNamesErrors;
+        var fileName;
+        if (!!matchErrors) {
+            fileName = matchErrors[0][0][0].fileName;
+        }
+        else if (!!lackOfNamesErrors) {
+            fileName = lackOfNamesErrors[0][0].fileName;
+        }
+        var text = "Errors for \"" + fileName + "\":";
+        if (matchErrors !== false) {
+            text += this._createLogForErrors(matchErrors, 'array-in-array');
+        }
+        if (lackOfNamesErrors !== false) {
+            text += "\r\n\r\n Another errors: \r\n\r\n";
+            text += this._createLogForErrors(lackOfNamesErrors, 'array');
+        }
+        this._logCreatedSubject.notifyObservers(text);
+    };
+    LogModel.prototype._createLogForErrors = function (workbookErrors, errorsArrayForm) {
+        var text = '';
+        for (var i = 0; i < workbookErrors.length; i++) {
+            var currentList = workbookErrors[i];
+            var list = void 0, listName = void 0;
+            if (Array.isArray(currentList[i])) {
+                list = (currentList[0][0]).list;
+                listName = (currentList[0][0]).listName;
+            }
+            else {
+                list = (currentList[0]).list;
+                listName = (currentList[0]).listName;
+            }
+            text += "\r\n\r\nLis No" + list + "(" + listName + ")\r\n";
+            text += "No - ROW - VALUE - ERROR TYPE\r\n\r\n";
+            if (errorsArrayForm === 'array-in-array') {
+                for (var i_1 = 0; i_1 < currentList.length; i_1++) {
+                    text += this._createLogForErrorsArray(currentList[i_1], 'group', i_1 + 1);
+                }
+            }
+            if (errorsArrayForm === 'array') {
+                text += this._createLogForErrorsArray(currentList, 'in-course');
+            }
+        }
+        return text;
+    };
+    ;
+    LogModel.prototype._createLogForErrorsArray = function (errorsArray, numeration, errorNumber) {
+        var text = '';
+        for (var i = 0; i < errorsArray.length; i++) {
+            var logNumber = void 0;
+            if (numeration === 'group' && !!errorNumber) {
+                logNumber = String(errorNumber);
+            }
+            if (numeration === 'in-course' && !errorNumber)
+                logNumber = String(i + 1);
+            // if ( !logNumber ) logNumber = '';
+            var currentError = errorsArray[i];
+            text += "" + logNumber + " - "
+                + currentError.row + " - "
+                + currentError.value + " - "
+                + currentError.error + "\r\n";
+            // errorNumber = undefined;
+        }
+        return text;
+    };
+    return LogModel;
+}());
+exports.default = LogModel;
+
+
+/***/ }),
+
+/***/ "./src/MVP/LogPresenter.ts":
+/*!*********************************!*\
+  !*** ./src/MVP/LogPresenter.ts ***!
+  \*********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var LogPresenter = /** @class */ (function () {
+    function LogPresenter(view, model) {
+        this.model = model;
+        this.view = view;
+        this.model.whenLogCreated(this._setlLog());
+    }
+    LogPresenter.prototype.initialize = function (workbookErrors, mode) {
+        this._createLog(workbookErrors, mode);
+        this.view.initialize();
+    };
+    LogPresenter.prototype._createLog = function (workbookErrors, mode) {
+        this.model.errors = workbookErrors;
+        if (mode === 'fullName') {
+            this.model.createLogForConvertedFullNameErrors();
+        }
+        else {
+            this.model.createLogForSingleCellErrors();
+        }
+    };
+    LogPresenter.prototype._setlLog = function () {
+        var _this = this;
+        return function (log) {
+            _this.view.log = log;
+        };
+    };
+    return LogPresenter;
+}());
+exports.default = LogPresenter;
+
+
+/***/ }),
+
+/***/ "./src/MVP/LogView.ts":
+/*!****************************!*\
+  !*** ./src/MVP/LogView.ts ***!
+  \****************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var elements = __importStar(__webpack_require__(/*! ../ValidatorView.private/elements */ "./src/ValidatorView.private/elements.ts"));
+var elements_1 = __webpack_require__(/*! ../ValidatorView.private/elements */ "./src/ValidatorView.private/elements.ts");
+var selfDownLoadFile_1 = __webpack_require__(/*! ../ValidatorView.private/selfDownLoadFile */ "./src/ValidatorView.private/selfDownLoadFile.ts");
+var LogView = /** @class */ (function () {
+    function LogView() {
+        var button = elements_1.create('button', ['class', 'button log-download-button']);
+        button.innerHTML = 'Download Report';
+        this.html = button;
+    }
+    Object.defineProperty(LogView.prototype, "log", {
+        set: function (log) {
+            this.text = log;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    LogView.prototype.render = function (root) {
+        elements.appendToElem(root, this.html);
+    };
+    LogView.prototype.initialize = function () {
+        var _this = this;
+        this.html.onclick = function () {
+            selfDownLoadFile_1.selfDownloadFile('report.txt', _this.text);
+        };
+    };
+    LogView.prototype.destroy = function () {
+        this.disable();
+        this.deleteFromDom();
+    };
+    LogView.prototype.disable = function () {
+        this.html.onclick = null;
+    };
+    LogView.prototype.deleteFromDom = function () {
+        this.html.remove();
+    };
+    return LogView;
+}());
+exports.default = LogView;
+
+
+/***/ }),
+
 /***/ "./src/MVP/ValidatorModel.ts":
 /*!***********************************!*\
   !*** ./src/MVP/ValidatorModel.ts ***!
@@ -34080,7 +34576,7 @@ var ValidatorModel = /** @class */ (function () {
                 return;
             }
             for (var currentListIterationNumber = firstListIterationNumber; currentListIterationNumber <= lastListIterationNumber; currentListIterationNumber++) {
-                if (this._doColumnsExist(workbook, currentListIterationNumber + 1) !== true) {
+                if (this._doColumnsExist(workbook, currentListIterationNumber) !== true) {
                     var error = this._doColumnsExist(workbook, currentListIterationNumber);
                     this._configurationErrorFoundSubject.notifyObservers(error);
                     return;
@@ -34100,15 +34596,14 @@ var ValidatorModel = /** @class */ (function () {
             this._validationCompletedSubject.notifyObservers(false);
         }
     };
-    ValidatorModel.prototype.whenWorkbookValidated = function (callback) {
+    ValidatorModel.prototype.whenWorkbookValidated = function (errorsFoundCallback, noErrorsFoundCallback) {
         var _this = this;
         this._validationCompletedSubject.addObserver(function (workbookErrors) {
             if (workbookErrors !== false) {
-                var log = _this.createLog(workbookErrors, _this.config.fileName);
-                callback(workbookErrors, log);
+                errorsFoundCallback(workbookErrors, _this.config);
             }
             else {
-                callback(false);
+                noErrorsFoundCallback();
             }
         });
     };
@@ -34116,88 +34611,6 @@ var ValidatorModel = /** @class */ (function () {
         this._configurationErrorFoundSubject.addObserver(function (error) {
             callback(error);
         });
-    };
-    ValidatorModel.prototype.createLog = function (workbookErrors, fileName) {
-        var convertFullNameErrors = function (errorsArray) {
-            var lackOfNames = [];
-            var match = [];
-            errorsArray.forEach(function (errorObject) {
-                if (errorObject.lackOfNamesErrors !== false)
-                    lackOfNames.push(errorObject.lackOfNamesErrors);
-                if (errorObject.matchErrors !== false)
-                    match.push(errorObject.matchErrors);
-            });
-            if (lackOfNames.length === 0)
-                lackOfNames = false;
-            if (match.length === 0)
-                match = false;
-            return {
-                lackOfNamesErrors: lackOfNames,
-                matchErrors: match
-            };
-        };
-        var createLogForErrorsArray = function (errorsArray, numeration, errorNumber) {
-            var text = '';
-            for (var i = 0; i < errorsArray.length; i++) {
-                var logNumber = void 0;
-                if (numeration === 'group' && !!errorNumber) {
-                    logNumber = String(errorNumber);
-                }
-                if (numeration === 'in-course' && !errorNumber)
-                    logNumber = String(i + 1);
-                // if ( !logNumber ) logNumber = '';
-                var currentError = errorsArray[i];
-                text += "" + logNumber + " - "
-                    + currentError.row + " - "
-                    + currentError.value + " - "
-                    + currentError.error + "\r\n";
-                // errorNumber = undefined;
-            }
-            return text;
-        };
-        var createLogForErrors = function (workbookErrors, errorsArrayForm) {
-            var text = '';
-            for (var i = 0; i < workbookErrors.length; i++) {
-                var currentList = workbookErrors[i];
-                var list = void 0, listName = void 0;
-                if (Array.isArray(currentList[i])) {
-                    list = (currentList[0][0]).list;
-                    listName = (currentList[0][0]).listName;
-                }
-                else {
-                    list = (currentList[0]).list;
-                    listName = (currentList[0]).listName;
-                }
-                text += "\r\n\r\nLis No" + list + "(" + listName + ")\r\n";
-                text += "No - ROW - VALUE - ERROR TYPE\r\n\r\n";
-                if (errorsArrayForm === 'array-in-array') {
-                    for (var i_1 = 0; i_1 < currentList.length; i_1++) {
-                        text += createLogForErrorsArray(currentList[i_1], 'group', i_1 + 1);
-                    }
-                }
-                if (errorsArrayForm === 'array') {
-                    text += createLogForErrorsArray(currentList, 'in-course');
-                }
-            }
-            return text;
-        };
-        var text = "Errors for \"" + fileName + "\":";
-        if (this.config.mode === 'fullName') {
-            var errors = convertFullNameErrors(workbookErrors);
-            var matchErrors = errors.matchErrors;
-            var lackOfNamesErrors = errors.lackOfNamesErrors;
-            if (matchErrors !== false) {
-                text += createLogForErrors(matchErrors, 'array-in-array');
-            }
-            if (lackOfNamesErrors !== false) {
-                text += "\r\n\r\n Another errors: \r\n\r\n";
-                text += createLogForErrors(lackOfNamesErrors, 'array');
-            }
-        }
-        else {
-            text += createLogForErrors(workbookErrors, 'array');
-        }
-        return text;
     };
     ValidatorModel.prototype._validateSheet = function (sheet) {
         var range = XLSX.utils.decode_range(sheet['!ref']);
@@ -34429,40 +34842,84 @@ exports.default = ValidatorModel;
 
 "use strict";
 
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+var ErrorsPresenter_1 = __importDefault(__webpack_require__(/*! ./ErrorsPresenter */ "./src/MVP/ErrorsPresenter.ts"));
+var ErrorsView_1 = __importDefault(__webpack_require__(/*! ./ErrorsView */ "./src/MVP/ErrorsView.ts"));
+var LogPresenter_1 = __importDefault(__webpack_require__(/*! ./LogPresenter */ "./src/MVP/LogPresenter.ts"));
+var LogModel_1 = __importDefault(__webpack_require__(/*! ./LogModel */ "./src/MVP/LogModel.ts"));
+var LogView_1 = __importDefault(__webpack_require__(/*! ./LogView */ "./src/MVP/LogView.ts"));
 var ValidatorPresenter = /** @class */ (function () {
     function ValidatorPresenter(model, view) {
         this.model = model;
         this.view = view;
-        this.view.whenValidationStarted(this.validateWorkbook());
-        this.model.whenWorkbookValidated(this.renderErrors());
-        this.model.whenConfigurationErrorFound(this.alertErrorMessage());
+        this.view.whenValidationStarted(this.validateWorkbookCallback());
+        this.model.whenWorkbookValidated(this.renderErrorsCallback(), this.showNoErrorsMessageCallback());
+        this.model.whenConfigurationErrorFound(this.showErrorMessageCallback());
     }
     ValidatorPresenter.prototype.initialize = function () {
         this.view.renderUI();
     };
-    ValidatorPresenter.prototype.validateWorkbook = function () {
+    ValidatorPresenter.prototype.validateWorkbookCallback = function () {
         var _this = this;
         return function (workbook, options) {
             _this.model.config = options;
             _this.model.validateWorkbook(workbook);
         };
     };
-    ValidatorPresenter.prototype.renderErrors = function () {
+    ValidatorPresenter.prototype.renderErrorsCallback = function () {
         var _this = this;
-        return function (workbookErrors, log) {
-            if (workbookErrors !== false) {
-                _this.view.renderErrors(workbookErrors, log);
+        return function (workbookErrors, config) {
+            var errors;
+            if (config.mode === 'fullName') {
+                if (Array.isArray(workbookErrors[0])) {
+                    throw new Error('WorkBook errors are not assignable to required format');
+                }
+                errors = _this._convertFullNameErrors(workbookErrors);
             }
             else {
-                _this.view.showNoErrorsMessage();
+                if (!Array.isArray(workbookErrors[0])) {
+                    throw new Error('WorkBook errors are not assignable to required format');
+                }
+                errors = workbookErrors;
             }
+            var errorsPresenter = new ErrorsPresenter_1.default(new ErrorsView_1.default());
+            var logPresenter = new LogPresenter_1.default(new LogView_1.default(), new LogModel_1.default());
+            logPresenter.initialize(errors, config.mode);
+            errorsPresenter.initialize(errors, config);
+            _this.view.renderErrors(errorsPresenter.view, logPresenter.view);
         };
     };
-    ValidatorPresenter.prototype.alertErrorMessage = function () {
+    ValidatorPresenter.prototype.showNoErrorsMessageCallback = function () {
+        var _this = this;
+        return function () {
+            _this.view.showNoErrorsMessage();
+        };
+    };
+    ValidatorPresenter.prototype.showErrorMessageCallback = function () {
         var _this = this;
         return function (error) {
-            _this.view.showErrorMessage(error);
+            _this.view.processErrorMessage(error);
+        };
+    };
+    ValidatorPresenter.prototype._convertFullNameErrors = function (errorsArray) {
+        var lackOfNames = [];
+        var match = [];
+        errorsArray.forEach(function (errorObject) {
+            if (errorObject.lackOfNamesErrors !== false)
+                lackOfNames.push(errorObject.lackOfNamesErrors);
+            if (errorObject.matchErrors !== false)
+                match.push(errorObject.matchErrors);
+        });
+        if (lackOfNames.length === 0)
+            lackOfNames = false;
+        if (match.length === 0)
+            match = false;
+        return {
+            lackOfNamesErrors: lackOfNames,
+            matchErrors: match
         };
     };
     return ValidatorPresenter;
@@ -34537,8 +34994,8 @@ var ValidatorView = /** @class */ (function () {
         this._validationStartedSubject = new Observer_1.default();
         var headerArea = elements.createHeaderArea();
         var settingsArea = elements.createSettingsArea();
+        var errorsArea = document.createElement('div');
         var noErrorsMessage = elements.createNoErrorsMessage();
-        var errorsArea = elements.createErrorsArea();
         this.elements = {
             root: document.body,
             headerArea: {
@@ -34567,10 +35024,7 @@ var ValidatorView = /** @class */ (function () {
                 runButton: settingsArea.runButton,
             },
             noErrorsMessage: noErrorsMessage,
-            errorsArea: {
-                wrapper: errorsArea.wrapper,
-                anotherErrorsSign: errorsArea.anotherErrorsSign
-            },
+            errorsArea: errorsArea,
             logButton: null
         };
     }
@@ -34616,164 +35070,19 @@ var ValidatorView = /** @class */ (function () {
             reader.readAsArrayBuffer(file);
         });
     };
-    ValidatorView.prototype.renderErrors = function (workbookErrors, log) {
+    ValidatorView.prototype.renderErrors = function (errorsView, logView) {
         return __awaiter(this, void 0, void 0, function () {
-            var loopAndRenderErrors, convertFullNameErrors, errors, matchErrors, lackOfNamesErrors;
-            var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        loopAndRenderErrors = function (workbookErrors, errorsListForm, numeration) { return __awaiter(_this, void 0, void 0, function () {
-                            var i, currentList, list, listName, errorsListBlock;
-                            return __generator(this, function (_a) {
-                                switch (_a.label) {
-                                    case 0:
-                                        i = 0;
-                                        _a.label = 1;
-                                    case 1:
-                                        if (!(i < workbookErrors.length)) return [3 /*break*/, 4];
-                                        currentList = workbookErrors[i];
-                                        if (currentList.length === 0)
-                                            return [3 /*break*/, 3];
-                                        list = void 0, listName = void 0;
-                                        if (Array.isArray(currentList[i])) {
-                                            list = currentList[0][0].list;
-                                            listName = currentList[0][0].listName;
-                                        }
-                                        else {
-                                            list = currentList[0].list;
-                                            listName = currentList[0].listName;
-                                        }
-                                        errorsListBlock = elements.createListErrorsBlock(listName, list);
-                                        elements.appendToElem(this.elements.errorsArea.wrapper, errorsListBlock.wrapper);
-                                        return [4 /*yield*/, this._renderListErrors(currentList, errorsListBlock.table, errorsListForm, numeration)];
-                                    case 2:
-                                        _a.sent();
-                                        _a.label = 3;
-                                    case 3:
-                                        i++;
-                                        return [3 /*break*/, 1];
-                                    case 4: return [2 /*return*/];
-                                }
-                            });
-                        }); };
-                        elements.appendToElem(this.elements.root, this.elements.errorsArea.wrapper);
-                        if (!(this.config.mode === 'fullName')) return [3 /*break*/, 5];
-                        convertFullNameErrors = function (errorsArray) {
-                            var lackOfNames = [];
-                            var match = [];
-                            errorsArray.forEach(function (errorObject) {
-                                if (errorObject.lackOfNamesErrors !== false)
-                                    lackOfNames.push(errorObject.lackOfNamesErrors);
-                                if (errorObject.matchErrors !== false)
-                                    match.push(errorObject.matchErrors);
-                            });
-                            if (lackOfNames.length === 0)
-                                lackOfNames = false;
-                            if (match.length === 0)
-                                match = false;
-                            return {
-                                lackOfNamesErrors: lackOfNames,
-                                matchErrors: match
-                            };
-                        };
-                        errors = convertFullNameErrors(workbookErrors);
-                        matchErrors = errors.matchErrors;
-                        lackOfNamesErrors = errors.lackOfNamesErrors;
-                        if (!(matchErrors !== false)) return [3 /*break*/, 2];
-                        return [4 /*yield*/, loopAndRenderErrors(matchErrors, 'array-in-array', 'group')];
+                        this.elements.root.append(this.elements.errorsArea);
+                        return [4 /*yield*/, errorsView.render(this.elements.errorsArea)];
                     case 1:
                         _a.sent();
-                        _a.label = 2;
-                    case 2:
-                        if (!(lackOfNamesErrors !== false)) return [3 /*break*/, 4];
-                        elements.appendToElem(this.elements.errorsArea.wrapper, this.elements.errorsArea.anotherErrorsSign);
-                        return [4 /*yield*/, loopAndRenderErrors(lackOfNamesErrors, 'array', 'in-course')];
-                    case 3:
-                        _a.sent();
-                        _a.label = 4;
-                    case 4: return [3 /*break*/, 7];
-                    case 5: return [4 /*yield*/, loopAndRenderErrors(workbookErrors, 'array', 'in-course')];
-                    case 6:
-                        _a.sent();
-                        _a.label = 7;
-                    case 7:
-                        this.elements.logButton = elements.createLogButton(log);
-                        elements.appendToElem(this.elements.settingsArea.wrapper, this.elements.logButton);
+                        this.elements.logButton = logView.html;
+                        logView.render(this.elements.settingsArea.wrapper);
                         this._toggleSettings('on');
                         return [2 /*return*/];
-                }
-            });
-        });
-    };
-    ValidatorView.prototype._renderListErrors = function (errorsList, table, listForm, numeration) {
-        return __awaiter(this, void 0, void 0, function () {
-            var loopAndRenderErrorsArray, i;
-            var _this = this;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        loopAndRenderErrorsArray = function (errors, table, numeration, numberToRender) { return __awaiter(_this, void 0, void 0, function () {
-                            var i, currentErrorObject, errorNumber, tableRow, getRowThroughTimeout;
-                            var _this = this;
-                            return __generator(this, function (_a) {
-                                switch (_a.label) {
-                                    case 0:
-                                        i = 0;
-                                        _a.label = 1;
-                                    case 1:
-                                        if (!(i < errors.length)) return [3 /*break*/, 4];
-                                        currentErrorObject = errors[i];
-                                        errorNumber = void 0;
-                                        if (numeration === 'group' && !!numberToRender) {
-                                            errorNumber = numberToRender;
-                                        }
-                                        if (numeration === 'in-course' && !numberToRender)
-                                            errorNumber = i + 1;
-                                        tableRow = elements.createRowForErrorsTable(errorNumber, currentErrorObject.row, currentErrorObject.value, currentErrorObject.error);
-                                        getRowThroughTimeout = function (row) { return __awaiter(_this, void 0, void 0, function () {
-                                            return __generator(this, function (_a) {
-                                                return [2 /*return*/, new Promise(function (resolve) {
-                                                        setTimeout(function () {
-                                                            resolve(row);
-                                                        }, 200);
-                                                    })];
-                                            });
-                                        }); };
-                                        return [4 /*yield*/, getRowThroughTimeout(tableRow)
-                                                .then(function (row) {
-                                                elements.appendToElem(table, row);
-                                            }, null)];
-                                    case 2:
-                                        _a.sent();
-                                        numberToRender = undefined;
-                                        _a.label = 3;
-                                    case 3:
-                                        i++;
-                                        return [3 /*break*/, 1];
-                                    case 4: return [2 /*return*/];
-                                }
-                            });
-                        }); };
-                        if (!(listForm === 'array-in-array')) return [3 /*break*/, 4];
-                        i = 0;
-                        _a.label = 1;
-                    case 1:
-                        if (!(i < errorsList.length)) return [3 /*break*/, 4];
-                        return [4 /*yield*/, loopAndRenderErrorsArray(errorsList[i], table, numeration, i + 1)];
-                    case 2:
-                        _a.sent();
-                        _a.label = 3;
-                    case 3:
-                        i++;
-                        return [3 /*break*/, 1];
-                    case 4:
-                        if (!(listForm === 'array')) return [3 /*break*/, 6];
-                        return [4 /*yield*/, loopAndRenderErrorsArray(errorsList, table, numeration)];
-                    case 5:
-                        _a.sent();
-                        _a.label = 6;
-                    case 6: return [2 /*return*/];
                 }
             });
         });
@@ -34781,12 +35090,13 @@ var ValidatorView = /** @class */ (function () {
     ValidatorView.prototype.showNoErrorsMessage = function () {
         elements.appendToElem(this.elements.root, this.elements.noErrorsMessage);
     };
-    ValidatorView.prototype.showErrorMessage = function (error) {
+    ValidatorView.prototype.processErrorMessage = function (error) {
         alert(error);
+        this._toggleSettings('on');
     };
     ValidatorView.prototype._refreshSettingsArea = function () {
         var mode = this.elements.settingsArea.modeSelect.select.value;
-        this.elements.settingsArea.runButton.disabled = this._isSettingsCorrect();
+        this.elements.settingsArea.runButton.disabled = !this._isSettingsCorrect();
         if (mode !== 'fullName') {
             this.elements.settingsArea.colInputs.secondInput.style.display = 'none';
             this.elements.settingsArea.colInputs.firstInput.placeholder = 'Col';
@@ -34814,9 +35124,9 @@ var ValidatorView = /** @class */ (function () {
         }
     };
     ValidatorView.prototype._cleanPage = function () {
-        if (this.elements.root.contains(this.elements.errorsArea.wrapper)) {
-            this.elements.errorsArea.wrapper.remove();
-            this.elements.errorsArea = elements.createErrorsArea();
+        if (this.elements.root.contains(this.elements.errorsArea)) {
+            this.elements.errorsArea.remove();
+            this.elements.errorsArea = document.createElement('div');
         }
         if (this.elements.root.contains(this.elements.logButton)) {
             this.elements.logButton.remove();
@@ -34851,438 +35161,6 @@ var ValidatorView = /** @class */ (function () {
     return ValidatorView;
 }());
 exports.default = ValidatorView;
-
-
-/***/ }),
-
-/***/ "./src/MVP/styles/button.css":
-/*!***********************************!*\
-  !*** ./src/MVP/styles/button.css ***!
-  \***********************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/col-inputs/col-inputs__input.css":
-/*!*********************************************************!*\
-  !*** ./src/MVP/styles/col-inputs/col-inputs__input.css ***!
-  \*********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/col-inputs/col-inputs__sign.css":
-/*!********************************************************!*\
-  !*** ./src/MVP/styles/col-inputs/col-inputs__sign.css ***!
-  \********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/col-inputs/col-inputs__wrapper.css":
-/*!***********************************************************!*\
-  !*** ./src/MVP/styles/col-inputs/col-inputs__wrapper.css ***!
-  \***********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/errors_area/error-area__sign.css":
-/*!*********************************************************!*\
-  !*** ./src/MVP/styles/errors_area/error-area__sign.css ***!
-  \*********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/errors_area/error-area__wrapper.css":
-/*!************************************************************!*\
-  !*** ./src/MVP/styles/errors_area/error-area__wrapper.css ***!
-  \************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/file-input/file-input__input.css":
-/*!*********************************************************!*\
-  !*** ./src/MVP/styles/file-input/file-input__input.css ***!
-  \*********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/file-input/file-input__label.css":
-/*!*********************************************************!*\
-  !*** ./src/MVP/styles/file-input/file-input__label.css ***!
-  \*********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/file-input/file-input__wrapper.css":
-/*!***********************************************************!*\
-  !*** ./src/MVP/styles/file-input/file-input__wrapper.css ***!
-  \***********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/header-area/header-area__name.css":
-/*!**********************************************************!*\
-  !*** ./src/MVP/styles/header-area/header-area__name.css ***!
-  \**********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/header-area/header-area__wrapper.css":
-/*!*************************************************************!*\
-  !*** ./src/MVP/styles/header-area/header-area__wrapper.css ***!
-  \*************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/list-errors/list-errors__cell.css":
-/*!**********************************************************!*\
-  !*** ./src/MVP/styles/list-errors/list-errors__cell.css ***!
-  \**********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/list-errors/list-errors__header-cell.css":
-/*!*****************************************************************!*\
-  !*** ./src/MVP/styles/list-errors/list-errors__header-cell.css ***!
-  \*****************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/list-errors/list-errors__list-name.css":
-/*!***************************************************************!*\
-  !*** ./src/MVP/styles/list-errors/list-errors__list-name.css ***!
-  \***************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/list-errors/list-errors__table-cell.css":
-/*!****************************************************************!*\
-  !*** ./src/MVP/styles/list-errors/list-errors__table-cell.css ***!
-  \****************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/list-errors/list-errors__table-header.css":
-/*!******************************************************************!*\
-  !*** ./src/MVP/styles/list-errors/list-errors__table-header.css ***!
-  \******************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/list-errors/list-errors__table-row.css":
-/*!***************************************************************!*\
-  !*** ./src/MVP/styles/list-errors/list-errors__table-row.css ***!
-  \***************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/list-errors/list-errors__table.css":
-/*!***********************************************************!*\
-  !*** ./src/MVP/styles/list-errors/list-errors__table.css ***!
-  \***********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/list-errors/list-errors__wrapper.css":
-/*!*************************************************************!*\
-  !*** ./src/MVP/styles/list-errors/list-errors__wrapper.css ***!
-  \*************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/list-input/list-input__input.css":
-/*!*********************************************************!*\
-  !*** ./src/MVP/styles/list-input/list-input__input.css ***!
-  \*********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/list-input/list-input__sign.css":
-/*!********************************************************!*\
-  !*** ./src/MVP/styles/list-input/list-input__sign.css ***!
-  \********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/list-input/list-input__wrapper.css":
-/*!***********************************************************!*\
-  !*** ./src/MVP/styles/list-input/list-input__wrapper.css ***!
-  \***********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/log-download-button.css":
-/*!************************************************!*\
-  !*** ./src/MVP/styles/log-download-button.css ***!
-  \************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/mode-select/mode-select__option.css":
-/*!************************************************************!*\
-  !*** ./src/MVP/styles/mode-select/mode-select__option.css ***!
-  \************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/mode-select/mode-select__select.css":
-/*!************************************************************!*\
-  !*** ./src/MVP/styles/mode-select/mode-select__select.css ***!
-  \************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/mode-select/mode-select__sign.css":
-/*!**********************************************************!*\
-  !*** ./src/MVP/styles/mode-select/mode-select__sign.css ***!
-  \**********************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/mode-select/mode-select__wrapper.css":
-/*!*************************************************************!*\
-  !*** ./src/MVP/styles/mode-select/mode-select__wrapper.css ***!
-  \*************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/run-button.css":
-/*!***************************************!*\
-  !*** ./src/MVP/styles/run-button.css ***!
-  \***************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/settings-wrapper.css":
-/*!*********************************************!*\
-  !*** ./src/MVP/styles/settings-wrapper.css ***!
-  \*********************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/sign.css":
-/*!*********************************!*\
-  !*** ./src/MVP/styles/sign.css ***!
-  \*********************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-
-/***/ "./src/MVP/styles/styles.js":
-/*!**********************************!*\
-  !*** ./src/MVP/styles/styles.js ***!
-  \**********************************/
-/*! no exports provided */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _header_area_header_area_wrapper_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./header-area/header-area__wrapper.css */ "./src/MVP/styles/header-area/header-area__wrapper.css");
-/* harmony import */ var _header_area_header_area_wrapper_css__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_header_area_header_area_wrapper_css__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _header_area_header_area_name_css__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./header-area/header-area__name.css */ "./src/MVP/styles/header-area/header-area__name.css");
-/* harmony import */ var _header_area_header_area_name_css__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_header_area_header_area_name_css__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var _settings_wrapper_css__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./settings-wrapper.css */ "./src/MVP/styles/settings-wrapper.css");
-/* harmony import */ var _settings_wrapper_css__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_settings_wrapper_css__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var _file_input_file_input_wrapper_css__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./file-input/file-input__wrapper.css */ "./src/MVP/styles/file-input/file-input__wrapper.css");
-/* harmony import */ var _file_input_file_input_wrapper_css__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(_file_input_file_input_wrapper_css__WEBPACK_IMPORTED_MODULE_3__);
-/* harmony import */ var _file_input_file_input_input_css__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./file-input/file-input__input.css */ "./src/MVP/styles/file-input/file-input__input.css");
-/* harmony import */ var _file_input_file_input_input_css__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(_file_input_file_input_input_css__WEBPACK_IMPORTED_MODULE_4__);
-/* harmony import */ var _file_input_file_input_label_css__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./file-input/file-input__label.css */ "./src/MVP/styles/file-input/file-input__label.css");
-/* harmony import */ var _file_input_file_input_label_css__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(_file_input_file_input_label_css__WEBPACK_IMPORTED_MODULE_5__);
-/* harmony import */ var _sign_css__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./sign.css */ "./src/MVP/styles/sign.css");
-/* harmony import */ var _sign_css__WEBPACK_IMPORTED_MODULE_6___default = /*#__PURE__*/__webpack_require__.n(_sign_css__WEBPACK_IMPORTED_MODULE_6__);
-/* harmony import */ var _mode_select_mode_select_wrapper_css__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./mode-select/mode-select__wrapper.css */ "./src/MVP/styles/mode-select/mode-select__wrapper.css");
-/* harmony import */ var _mode_select_mode_select_wrapper_css__WEBPACK_IMPORTED_MODULE_7___default = /*#__PURE__*/__webpack_require__.n(_mode_select_mode_select_wrapper_css__WEBPACK_IMPORTED_MODULE_7__);
-/* harmony import */ var _mode_select_mode_select_sign_css__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./mode-select/mode-select__sign.css */ "./src/MVP/styles/mode-select/mode-select__sign.css");
-/* harmony import */ var _mode_select_mode_select_sign_css__WEBPACK_IMPORTED_MODULE_8___default = /*#__PURE__*/__webpack_require__.n(_mode_select_mode_select_sign_css__WEBPACK_IMPORTED_MODULE_8__);
-/* harmony import */ var _mode_select_mode_select_select_css__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./mode-select/mode-select__select.css */ "./src/MVP/styles/mode-select/mode-select__select.css");
-/* harmony import */ var _mode_select_mode_select_select_css__WEBPACK_IMPORTED_MODULE_9___default = /*#__PURE__*/__webpack_require__.n(_mode_select_mode_select_select_css__WEBPACK_IMPORTED_MODULE_9__);
-/* harmony import */ var _mode_select_mode_select_option_css__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ./mode-select/mode-select__option.css */ "./src/MVP/styles/mode-select/mode-select__option.css");
-/* harmony import */ var _mode_select_mode_select_option_css__WEBPACK_IMPORTED_MODULE_10___default = /*#__PURE__*/__webpack_require__.n(_mode_select_mode_select_option_css__WEBPACK_IMPORTED_MODULE_10__);
-/* harmony import */ var _col_inputs_col_inputs_wrapper_css__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ./col-inputs/col-inputs__wrapper.css */ "./src/MVP/styles/col-inputs/col-inputs__wrapper.css");
-/* harmony import */ var _col_inputs_col_inputs_wrapper_css__WEBPACK_IMPORTED_MODULE_11___default = /*#__PURE__*/__webpack_require__.n(_col_inputs_col_inputs_wrapper_css__WEBPACK_IMPORTED_MODULE_11__);
-/* harmony import */ var _col_inputs_col_inputs_sign_css__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ./col-inputs/col-inputs__sign.css */ "./src/MVP/styles/col-inputs/col-inputs__sign.css");
-/* harmony import */ var _col_inputs_col_inputs_sign_css__WEBPACK_IMPORTED_MODULE_12___default = /*#__PURE__*/__webpack_require__.n(_col_inputs_col_inputs_sign_css__WEBPACK_IMPORTED_MODULE_12__);
-/* harmony import */ var _col_inputs_col_inputs_input_css__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ./col-inputs/col-inputs__input.css */ "./src/MVP/styles/col-inputs/col-inputs__input.css");
-/* harmony import */ var _col_inputs_col_inputs_input_css__WEBPACK_IMPORTED_MODULE_13___default = /*#__PURE__*/__webpack_require__.n(_col_inputs_col_inputs_input_css__WEBPACK_IMPORTED_MODULE_13__);
-/* harmony import */ var _list_input_list_input_wrapper_css__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ./list-input/list-input__wrapper.css */ "./src/MVP/styles/list-input/list-input__wrapper.css");
-/* harmony import */ var _list_input_list_input_wrapper_css__WEBPACK_IMPORTED_MODULE_14___default = /*#__PURE__*/__webpack_require__.n(_list_input_list_input_wrapper_css__WEBPACK_IMPORTED_MODULE_14__);
-/* harmony import */ var _list_input_list_input_sign_css__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ./list-input/list-input__sign.css */ "./src/MVP/styles/list-input/list-input__sign.css");
-/* harmony import */ var _list_input_list_input_sign_css__WEBPACK_IMPORTED_MODULE_15___default = /*#__PURE__*/__webpack_require__.n(_list_input_list_input_sign_css__WEBPACK_IMPORTED_MODULE_15__);
-/* harmony import */ var _list_input_list_input_input_css__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! ./list-input/list-input__input.css */ "./src/MVP/styles/list-input/list-input__input.css");
-/* harmony import */ var _list_input_list_input_input_css__WEBPACK_IMPORTED_MODULE_16___default = /*#__PURE__*/__webpack_require__.n(_list_input_list_input_input_css__WEBPACK_IMPORTED_MODULE_16__);
-/* harmony import */ var _button_css__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(/*! ./button.css */ "./src/MVP/styles/button.css");
-/* harmony import */ var _button_css__WEBPACK_IMPORTED_MODULE_17___default = /*#__PURE__*/__webpack_require__.n(_button_css__WEBPACK_IMPORTED_MODULE_17__);
-/* harmony import */ var _run_button_css__WEBPACK_IMPORTED_MODULE_18__ = __webpack_require__(/*! ./run-button.css */ "./src/MVP/styles/run-button.css");
-/* harmony import */ var _run_button_css__WEBPACK_IMPORTED_MODULE_18___default = /*#__PURE__*/__webpack_require__.n(_run_button_css__WEBPACK_IMPORTED_MODULE_18__);
-/* harmony import */ var _errors_area_error_area_wrapper_css__WEBPACK_IMPORTED_MODULE_19__ = __webpack_require__(/*! ./errors_area/error-area__wrapper.css */ "./src/MVP/styles/errors_area/error-area__wrapper.css");
-/* harmony import */ var _errors_area_error_area_wrapper_css__WEBPACK_IMPORTED_MODULE_19___default = /*#__PURE__*/__webpack_require__.n(_errors_area_error_area_wrapper_css__WEBPACK_IMPORTED_MODULE_19__);
-/* harmony import */ var _errors_area_error_area_sign_css__WEBPACK_IMPORTED_MODULE_20__ = __webpack_require__(/*! ./errors_area/error-area__sign.css */ "./src/MVP/styles/errors_area/error-area__sign.css");
-/* harmony import */ var _errors_area_error_area_sign_css__WEBPACK_IMPORTED_MODULE_20___default = /*#__PURE__*/__webpack_require__.n(_errors_area_error_area_sign_css__WEBPACK_IMPORTED_MODULE_20__);
-/* harmony import */ var _log_download_button_css__WEBPACK_IMPORTED_MODULE_21__ = __webpack_require__(/*! ./log-download-button.css */ "./src/MVP/styles/log-download-button.css");
-/* harmony import */ var _log_download_button_css__WEBPACK_IMPORTED_MODULE_21___default = /*#__PURE__*/__webpack_require__.n(_log_download_button_css__WEBPACK_IMPORTED_MODULE_21__);
-/* harmony import */ var _list_errors_list_errors_wrapper_css__WEBPACK_IMPORTED_MODULE_22__ = __webpack_require__(/*! ./list-errors/list-errors__wrapper.css */ "./src/MVP/styles/list-errors/list-errors__wrapper.css");
-/* harmony import */ var _list_errors_list_errors_wrapper_css__WEBPACK_IMPORTED_MODULE_22___default = /*#__PURE__*/__webpack_require__.n(_list_errors_list_errors_wrapper_css__WEBPACK_IMPORTED_MODULE_22__);
-/* harmony import */ var _list_errors_list_errors_list_name_css__WEBPACK_IMPORTED_MODULE_23__ = __webpack_require__(/*! ./list-errors/list-errors__list-name.css */ "./src/MVP/styles/list-errors/list-errors__list-name.css");
-/* harmony import */ var _list_errors_list_errors_list_name_css__WEBPACK_IMPORTED_MODULE_23___default = /*#__PURE__*/__webpack_require__.n(_list_errors_list_errors_list_name_css__WEBPACK_IMPORTED_MODULE_23__);
-/* harmony import */ var _list_errors_list_errors_table_css__WEBPACK_IMPORTED_MODULE_24__ = __webpack_require__(/*! ./list-errors/list-errors__table.css */ "./src/MVP/styles/list-errors/list-errors__table.css");
-/* harmony import */ var _list_errors_list_errors_table_css__WEBPACK_IMPORTED_MODULE_24___default = /*#__PURE__*/__webpack_require__.n(_list_errors_list_errors_table_css__WEBPACK_IMPORTED_MODULE_24__);
-/* harmony import */ var _list_errors_list_errors_cell_css__WEBPACK_IMPORTED_MODULE_25__ = __webpack_require__(/*! ./list-errors/list-errors__cell.css */ "./src/MVP/styles/list-errors/list-errors__cell.css");
-/* harmony import */ var _list_errors_list_errors_cell_css__WEBPACK_IMPORTED_MODULE_25___default = /*#__PURE__*/__webpack_require__.n(_list_errors_list_errors_cell_css__WEBPACK_IMPORTED_MODULE_25__);
-/* harmony import */ var _list_errors_list_errors_table_header_css__WEBPACK_IMPORTED_MODULE_26__ = __webpack_require__(/*! ./list-errors/list-errors__table-header.css */ "./src/MVP/styles/list-errors/list-errors__table-header.css");
-/* harmony import */ var _list_errors_list_errors_table_header_css__WEBPACK_IMPORTED_MODULE_26___default = /*#__PURE__*/__webpack_require__.n(_list_errors_list_errors_table_header_css__WEBPACK_IMPORTED_MODULE_26__);
-/* harmony import */ var _list_errors_list_errors_header_cell_css__WEBPACK_IMPORTED_MODULE_27__ = __webpack_require__(/*! ./list-errors/list-errors__header-cell.css */ "./src/MVP/styles/list-errors/list-errors__header-cell.css");
-/* harmony import */ var _list_errors_list_errors_header_cell_css__WEBPACK_IMPORTED_MODULE_27___default = /*#__PURE__*/__webpack_require__.n(_list_errors_list_errors_header_cell_css__WEBPACK_IMPORTED_MODULE_27__);
-/* harmony import */ var _list_errors_list_errors_table_row_css__WEBPACK_IMPORTED_MODULE_28__ = __webpack_require__(/*! ./list-errors/list-errors__table-row.css */ "./src/MVP/styles/list-errors/list-errors__table-row.css");
-/* harmony import */ var _list_errors_list_errors_table_row_css__WEBPACK_IMPORTED_MODULE_28___default = /*#__PURE__*/__webpack_require__.n(_list_errors_list_errors_table_row_css__WEBPACK_IMPORTED_MODULE_28__);
-/* harmony import */ var _list_errors_list_errors_table_cell_css__WEBPACK_IMPORTED_MODULE_29__ = __webpack_require__(/*! ./list-errors/list-errors__table-cell.css */ "./src/MVP/styles/list-errors/list-errors__table-cell.css");
-/* harmony import */ var _list_errors_list_errors_table_cell_css__WEBPACK_IMPORTED_MODULE_29___default = /*#__PURE__*/__webpack_require__.n(_list_errors_list_errors_table_cell_css__WEBPACK_IMPORTED_MODULE_29__);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 /***/ }),
@@ -35649,7 +35527,7 @@ exports.createNoErrorsMessage = function () {
     return message;
 };
 exports.createAnotherErrorsSign = function () {
-    var sign = exports.create('div', ['class', 'another-errors-sign']);
+    var sign = exports.create('div', ['class', 'errors-area__another-errors-sign']);
     sign.innerHTML = 'Another errors found:';
     return sign;
 };
@@ -35813,7 +35691,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var ValidatorModel_1 = __importDefault(__webpack_require__(/*! ./MVP/ValidatorModel */ "./src/MVP/ValidatorModel.ts"));
 var ValidatorView_1 = __importDefault(__webpack_require__(/*! ./MVP/ValidatorView */ "./src/MVP/ValidatorView.ts"));
 var ValidatorPresenter_1 = __importDefault(__webpack_require__(/*! ./MVP/ValidatorPresenter */ "./src/MVP/ValidatorPresenter.ts"));
-__webpack_require__(/*! ./MVP/styles/styles */ "./src/MVP/styles/styles.js");
+__webpack_require__(/*! ./styles/styles */ "./src/styles/styles.js");
 var model = new ValidatorModel_1.default();
 var view = new ValidatorView_1.default();
 var presenter = new ValidatorPresenter_1.default(model, view);
@@ -35836,6 +35714,452 @@ var removeDiacritics = function removeDiacritics(str) {
 };
 
 /* harmony default export */ __webpack_exports__["default"] = (removeDiacritics); // console.log(removeDiacritics('Frédéric Patrick Jérôme') === 'Frederic Patrick Jerome');
+
+/***/ }),
+
+/***/ "./src/styles/button.css":
+/*!*******************************!*\
+  !*** ./src/styles/button.css ***!
+  \*******************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/col-inputs/col-inputs__input.css":
+/*!*****************************************************!*\
+  !*** ./src/styles/col-inputs/col-inputs__input.css ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/col-inputs/col-inputs__sign.css":
+/*!****************************************************!*\
+  !*** ./src/styles/col-inputs/col-inputs__sign.css ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/col-inputs/col-inputs__wrapper.css":
+/*!*******************************************************!*\
+  !*** ./src/styles/col-inputs/col-inputs__wrapper.css ***!
+  \*******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/errors_area/error-area__sign.css":
+/*!*****************************************************!*\
+  !*** ./src/styles/errors_area/error-area__sign.css ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/errors_area/error-area__wrapper.css":
+/*!********************************************************!*\
+  !*** ./src/styles/errors_area/error-area__wrapper.css ***!
+  \********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/errors_area/errors-area__another-errors-sign.css":
+/*!*********************************************************************!*\
+  !*** ./src/styles/errors_area/errors-area__another-errors-sign.css ***!
+  \*********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/file-input/file-input__input.css":
+/*!*****************************************************!*\
+  !*** ./src/styles/file-input/file-input__input.css ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/file-input/file-input__label.css":
+/*!*****************************************************!*\
+  !*** ./src/styles/file-input/file-input__label.css ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/file-input/file-input__wrapper.css":
+/*!*******************************************************!*\
+  !*** ./src/styles/file-input/file-input__wrapper.css ***!
+  \*******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/header-area/header-area__name.css":
+/*!******************************************************!*\
+  !*** ./src/styles/header-area/header-area__name.css ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/header-area/header-area__wrapper.css":
+/*!*********************************************************!*\
+  !*** ./src/styles/header-area/header-area__wrapper.css ***!
+  \*********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/list-errors/list-errors__cell.css":
+/*!******************************************************!*\
+  !*** ./src/styles/list-errors/list-errors__cell.css ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/list-errors/list-errors__header-cell.css":
+/*!*************************************************************!*\
+  !*** ./src/styles/list-errors/list-errors__header-cell.css ***!
+  \*************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/list-errors/list-errors__list-name.css":
+/*!***********************************************************!*\
+  !*** ./src/styles/list-errors/list-errors__list-name.css ***!
+  \***********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/list-errors/list-errors__table-cell.css":
+/*!************************************************************!*\
+  !*** ./src/styles/list-errors/list-errors__table-cell.css ***!
+  \************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/list-errors/list-errors__table-header.css":
+/*!**************************************************************!*\
+  !*** ./src/styles/list-errors/list-errors__table-header.css ***!
+  \**************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/list-errors/list-errors__table-row.css":
+/*!***********************************************************!*\
+  !*** ./src/styles/list-errors/list-errors__table-row.css ***!
+  \***********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/list-errors/list-errors__table.css":
+/*!*******************************************************!*\
+  !*** ./src/styles/list-errors/list-errors__table.css ***!
+  \*******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/list-errors/list-errors__wrapper.css":
+/*!*********************************************************!*\
+  !*** ./src/styles/list-errors/list-errors__wrapper.css ***!
+  \*********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/list-input/list-input__input.css":
+/*!*****************************************************!*\
+  !*** ./src/styles/list-input/list-input__input.css ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/list-input/list-input__sign.css":
+/*!****************************************************!*\
+  !*** ./src/styles/list-input/list-input__sign.css ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/list-input/list-input__wrapper.css":
+/*!*******************************************************!*\
+  !*** ./src/styles/list-input/list-input__wrapper.css ***!
+  \*******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/log-download-button.css":
+/*!********************************************!*\
+  !*** ./src/styles/log-download-button.css ***!
+  \********************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/mode-select/mode-select__option.css":
+/*!********************************************************!*\
+  !*** ./src/styles/mode-select/mode-select__option.css ***!
+  \********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/mode-select/mode-select__select.css":
+/*!********************************************************!*\
+  !*** ./src/styles/mode-select/mode-select__select.css ***!
+  \********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/mode-select/mode-select__sign.css":
+/*!******************************************************!*\
+  !*** ./src/styles/mode-select/mode-select__sign.css ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/mode-select/mode-select__wrapper.css":
+/*!*********************************************************!*\
+  !*** ./src/styles/mode-select/mode-select__wrapper.css ***!
+  \*********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/run-button.css":
+/*!***********************************!*\
+  !*** ./src/styles/run-button.css ***!
+  \***********************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/settings-wrapper.css":
+/*!*****************************************!*\
+  !*** ./src/styles/settings-wrapper.css ***!
+  \*****************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/sign.css":
+/*!*****************************!*\
+  !*** ./src/styles/sign.css ***!
+  \*****************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+
+/***/ "./src/styles/styles.js":
+/*!******************************!*\
+  !*** ./src/styles/styles.js ***!
+  \******************************/
+/*! no exports provided */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _header_area_header_area_wrapper_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./header-area/header-area__wrapper.css */ "./src/styles/header-area/header-area__wrapper.css");
+/* harmony import */ var _header_area_header_area_wrapper_css__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_header_area_header_area_wrapper_css__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _header_area_header_area_name_css__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./header-area/header-area__name.css */ "./src/styles/header-area/header-area__name.css");
+/* harmony import */ var _header_area_header_area_name_css__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_header_area_header_area_name_css__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _settings_wrapper_css__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./settings-wrapper.css */ "./src/styles/settings-wrapper.css");
+/* harmony import */ var _settings_wrapper_css__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_settings_wrapper_css__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var _file_input_file_input_wrapper_css__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./file-input/file-input__wrapper.css */ "./src/styles/file-input/file-input__wrapper.css");
+/* harmony import */ var _file_input_file_input_wrapper_css__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(_file_input_file_input_wrapper_css__WEBPACK_IMPORTED_MODULE_3__);
+/* harmony import */ var _file_input_file_input_input_css__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./file-input/file-input__input.css */ "./src/styles/file-input/file-input__input.css");
+/* harmony import */ var _file_input_file_input_input_css__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(_file_input_file_input_input_css__WEBPACK_IMPORTED_MODULE_4__);
+/* harmony import */ var _file_input_file_input_label_css__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./file-input/file-input__label.css */ "./src/styles/file-input/file-input__label.css");
+/* harmony import */ var _file_input_file_input_label_css__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(_file_input_file_input_label_css__WEBPACK_IMPORTED_MODULE_5__);
+/* harmony import */ var _sign_css__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./sign.css */ "./src/styles/sign.css");
+/* harmony import */ var _sign_css__WEBPACK_IMPORTED_MODULE_6___default = /*#__PURE__*/__webpack_require__.n(_sign_css__WEBPACK_IMPORTED_MODULE_6__);
+/* harmony import */ var _mode_select_mode_select_wrapper_css__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./mode-select/mode-select__wrapper.css */ "./src/styles/mode-select/mode-select__wrapper.css");
+/* harmony import */ var _mode_select_mode_select_wrapper_css__WEBPACK_IMPORTED_MODULE_7___default = /*#__PURE__*/__webpack_require__.n(_mode_select_mode_select_wrapper_css__WEBPACK_IMPORTED_MODULE_7__);
+/* harmony import */ var _mode_select_mode_select_sign_css__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./mode-select/mode-select__sign.css */ "./src/styles/mode-select/mode-select__sign.css");
+/* harmony import */ var _mode_select_mode_select_sign_css__WEBPACK_IMPORTED_MODULE_8___default = /*#__PURE__*/__webpack_require__.n(_mode_select_mode_select_sign_css__WEBPACK_IMPORTED_MODULE_8__);
+/* harmony import */ var _mode_select_mode_select_select_css__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./mode-select/mode-select__select.css */ "./src/styles/mode-select/mode-select__select.css");
+/* harmony import */ var _mode_select_mode_select_select_css__WEBPACK_IMPORTED_MODULE_9___default = /*#__PURE__*/__webpack_require__.n(_mode_select_mode_select_select_css__WEBPACK_IMPORTED_MODULE_9__);
+/* harmony import */ var _mode_select_mode_select_option_css__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ./mode-select/mode-select__option.css */ "./src/styles/mode-select/mode-select__option.css");
+/* harmony import */ var _mode_select_mode_select_option_css__WEBPACK_IMPORTED_MODULE_10___default = /*#__PURE__*/__webpack_require__.n(_mode_select_mode_select_option_css__WEBPACK_IMPORTED_MODULE_10__);
+/* harmony import */ var _col_inputs_col_inputs_wrapper_css__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ./col-inputs/col-inputs__wrapper.css */ "./src/styles/col-inputs/col-inputs__wrapper.css");
+/* harmony import */ var _col_inputs_col_inputs_wrapper_css__WEBPACK_IMPORTED_MODULE_11___default = /*#__PURE__*/__webpack_require__.n(_col_inputs_col_inputs_wrapper_css__WEBPACK_IMPORTED_MODULE_11__);
+/* harmony import */ var _col_inputs_col_inputs_sign_css__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ./col-inputs/col-inputs__sign.css */ "./src/styles/col-inputs/col-inputs__sign.css");
+/* harmony import */ var _col_inputs_col_inputs_sign_css__WEBPACK_IMPORTED_MODULE_12___default = /*#__PURE__*/__webpack_require__.n(_col_inputs_col_inputs_sign_css__WEBPACK_IMPORTED_MODULE_12__);
+/* harmony import */ var _col_inputs_col_inputs_input_css__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ./col-inputs/col-inputs__input.css */ "./src/styles/col-inputs/col-inputs__input.css");
+/* harmony import */ var _col_inputs_col_inputs_input_css__WEBPACK_IMPORTED_MODULE_13___default = /*#__PURE__*/__webpack_require__.n(_col_inputs_col_inputs_input_css__WEBPACK_IMPORTED_MODULE_13__);
+/* harmony import */ var _list_input_list_input_wrapper_css__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ./list-input/list-input__wrapper.css */ "./src/styles/list-input/list-input__wrapper.css");
+/* harmony import */ var _list_input_list_input_wrapper_css__WEBPACK_IMPORTED_MODULE_14___default = /*#__PURE__*/__webpack_require__.n(_list_input_list_input_wrapper_css__WEBPACK_IMPORTED_MODULE_14__);
+/* harmony import */ var _list_input_list_input_sign_css__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ./list-input/list-input__sign.css */ "./src/styles/list-input/list-input__sign.css");
+/* harmony import */ var _list_input_list_input_sign_css__WEBPACK_IMPORTED_MODULE_15___default = /*#__PURE__*/__webpack_require__.n(_list_input_list_input_sign_css__WEBPACK_IMPORTED_MODULE_15__);
+/* harmony import */ var _list_input_list_input_input_css__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! ./list-input/list-input__input.css */ "./src/styles/list-input/list-input__input.css");
+/* harmony import */ var _list_input_list_input_input_css__WEBPACK_IMPORTED_MODULE_16___default = /*#__PURE__*/__webpack_require__.n(_list_input_list_input_input_css__WEBPACK_IMPORTED_MODULE_16__);
+/* harmony import */ var _button_css__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(/*! ./button.css */ "./src/styles/button.css");
+/* harmony import */ var _button_css__WEBPACK_IMPORTED_MODULE_17___default = /*#__PURE__*/__webpack_require__.n(_button_css__WEBPACK_IMPORTED_MODULE_17__);
+/* harmony import */ var _run_button_css__WEBPACK_IMPORTED_MODULE_18__ = __webpack_require__(/*! ./run-button.css */ "./src/styles/run-button.css");
+/* harmony import */ var _run_button_css__WEBPACK_IMPORTED_MODULE_18___default = /*#__PURE__*/__webpack_require__.n(_run_button_css__WEBPACK_IMPORTED_MODULE_18__);
+/* harmony import */ var _errors_area_error_area_wrapper_css__WEBPACK_IMPORTED_MODULE_19__ = __webpack_require__(/*! ./errors_area/error-area__wrapper.css */ "./src/styles/errors_area/error-area__wrapper.css");
+/* harmony import */ var _errors_area_error_area_wrapper_css__WEBPACK_IMPORTED_MODULE_19___default = /*#__PURE__*/__webpack_require__.n(_errors_area_error_area_wrapper_css__WEBPACK_IMPORTED_MODULE_19__);
+/* harmony import */ var _errors_area_error_area_sign_css__WEBPACK_IMPORTED_MODULE_20__ = __webpack_require__(/*! ./errors_area/error-area__sign.css */ "./src/styles/errors_area/error-area__sign.css");
+/* harmony import */ var _errors_area_error_area_sign_css__WEBPACK_IMPORTED_MODULE_20___default = /*#__PURE__*/__webpack_require__.n(_errors_area_error_area_sign_css__WEBPACK_IMPORTED_MODULE_20__);
+/* harmony import */ var _errors_area_errors_area_another_errors_sign_css__WEBPACK_IMPORTED_MODULE_21__ = __webpack_require__(/*! ./errors_area/errors-area__another-errors-sign.css */ "./src/styles/errors_area/errors-area__another-errors-sign.css");
+/* harmony import */ var _errors_area_errors_area_another_errors_sign_css__WEBPACK_IMPORTED_MODULE_21___default = /*#__PURE__*/__webpack_require__.n(_errors_area_errors_area_another_errors_sign_css__WEBPACK_IMPORTED_MODULE_21__);
+/* harmony import */ var _log_download_button_css__WEBPACK_IMPORTED_MODULE_22__ = __webpack_require__(/*! ./log-download-button.css */ "./src/styles/log-download-button.css");
+/* harmony import */ var _log_download_button_css__WEBPACK_IMPORTED_MODULE_22___default = /*#__PURE__*/__webpack_require__.n(_log_download_button_css__WEBPACK_IMPORTED_MODULE_22__);
+/* harmony import */ var _list_errors_list_errors_wrapper_css__WEBPACK_IMPORTED_MODULE_23__ = __webpack_require__(/*! ./list-errors/list-errors__wrapper.css */ "./src/styles/list-errors/list-errors__wrapper.css");
+/* harmony import */ var _list_errors_list_errors_wrapper_css__WEBPACK_IMPORTED_MODULE_23___default = /*#__PURE__*/__webpack_require__.n(_list_errors_list_errors_wrapper_css__WEBPACK_IMPORTED_MODULE_23__);
+/* harmony import */ var _list_errors_list_errors_list_name_css__WEBPACK_IMPORTED_MODULE_24__ = __webpack_require__(/*! ./list-errors/list-errors__list-name.css */ "./src/styles/list-errors/list-errors__list-name.css");
+/* harmony import */ var _list_errors_list_errors_list_name_css__WEBPACK_IMPORTED_MODULE_24___default = /*#__PURE__*/__webpack_require__.n(_list_errors_list_errors_list_name_css__WEBPACK_IMPORTED_MODULE_24__);
+/* harmony import */ var _list_errors_list_errors_table_css__WEBPACK_IMPORTED_MODULE_25__ = __webpack_require__(/*! ./list-errors/list-errors__table.css */ "./src/styles/list-errors/list-errors__table.css");
+/* harmony import */ var _list_errors_list_errors_table_css__WEBPACK_IMPORTED_MODULE_25___default = /*#__PURE__*/__webpack_require__.n(_list_errors_list_errors_table_css__WEBPACK_IMPORTED_MODULE_25__);
+/* harmony import */ var _list_errors_list_errors_cell_css__WEBPACK_IMPORTED_MODULE_26__ = __webpack_require__(/*! ./list-errors/list-errors__cell.css */ "./src/styles/list-errors/list-errors__cell.css");
+/* harmony import */ var _list_errors_list_errors_cell_css__WEBPACK_IMPORTED_MODULE_26___default = /*#__PURE__*/__webpack_require__.n(_list_errors_list_errors_cell_css__WEBPACK_IMPORTED_MODULE_26__);
+/* harmony import */ var _list_errors_list_errors_table_header_css__WEBPACK_IMPORTED_MODULE_27__ = __webpack_require__(/*! ./list-errors/list-errors__table-header.css */ "./src/styles/list-errors/list-errors__table-header.css");
+/* harmony import */ var _list_errors_list_errors_table_header_css__WEBPACK_IMPORTED_MODULE_27___default = /*#__PURE__*/__webpack_require__.n(_list_errors_list_errors_table_header_css__WEBPACK_IMPORTED_MODULE_27__);
+/* harmony import */ var _list_errors_list_errors_header_cell_css__WEBPACK_IMPORTED_MODULE_28__ = __webpack_require__(/*! ./list-errors/list-errors__header-cell.css */ "./src/styles/list-errors/list-errors__header-cell.css");
+/* harmony import */ var _list_errors_list_errors_header_cell_css__WEBPACK_IMPORTED_MODULE_28___default = /*#__PURE__*/__webpack_require__.n(_list_errors_list_errors_header_cell_css__WEBPACK_IMPORTED_MODULE_28__);
+/* harmony import */ var _list_errors_list_errors_table_row_css__WEBPACK_IMPORTED_MODULE_29__ = __webpack_require__(/*! ./list-errors/list-errors__table-row.css */ "./src/styles/list-errors/list-errors__table-row.css");
+/* harmony import */ var _list_errors_list_errors_table_row_css__WEBPACK_IMPORTED_MODULE_29___default = /*#__PURE__*/__webpack_require__.n(_list_errors_list_errors_table_row_css__WEBPACK_IMPORTED_MODULE_29__);
+/* harmony import */ var _list_errors_list_errors_table_cell_css__WEBPACK_IMPORTED_MODULE_30__ = __webpack_require__(/*! ./list-errors/list-errors__table-cell.css */ "./src/styles/list-errors/list-errors__table-cell.css");
+/* harmony import */ var _list_errors_list_errors_table_cell_css__WEBPACK_IMPORTED_MODULE_30___default = /*#__PURE__*/__webpack_require__.n(_list_errors_list_errors_table_cell_css__WEBPACK_IMPORTED_MODULE_30__);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /***/ }),
 

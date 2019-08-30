@@ -214,14 +214,14 @@ export const createNoErrorsMessage = (): Elements['noErrorsMessage'] => {
 
 export const createAnotherErrorsSign = () => {
     const sign = create('div',
-        ['class', 'another-errors-sign']
+        ['class', 'errors-area__another-errors-sign']
     ) as HTMLDivElement;
     sign.innerHTML = 'Another errors found:';
 
     return sign;
 };
 
-export const createErrorsArea = (): Elements['errorsArea'] => {
+export const createErrorsArea = (): {wrapper: HTMLDivElement, anotherErrorsSign: HTMLDivElement} => {
     const wrapper = createDivWithClass('error-area__wrapper');
 
     const sign = create('div',
