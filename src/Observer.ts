@@ -18,7 +18,7 @@ class Observer implements ObserversStorage{
 
         for (let i = 0; i < this.observers.length; i++) {
             if (this.observers[i].toString() === observer.toString()) {
-                throw new Error('Observer already in the list');
+                throw new Error('Observer already in the lists');
             }
         }
 
@@ -34,11 +34,11 @@ class Observer implements ObserversStorage{
             }
         }
 
-        throw new Error('Could not find observer in list of observers');
+        throw new Error('Could not find observer in lists of observers');
     }
 
     notifyObservers(data?: any): void {
-        // Make a copy of observer list in case the list
+        // Make a copy of observer lists in case the lists
         // is mutated during the notifications.
         const observersSnapshot = this.observers.slice(0);
 

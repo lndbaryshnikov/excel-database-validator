@@ -1,6 +1,6 @@
-import * as elements from "../ValidatorView.private/elements"
-import {create} from "../ValidatorView.private/elements";
-import {selfDownloadFile} from "../ValidatorView.private/selfDownLoadFile";
+import * as elements from "../../ValidatorView.private/elements"
+import {create} from "../../ValidatorView.private/elements";
+import {selfDownloadFile} from "../../ValidatorView.private/selfDownLoadFile";
 
 export default class LogView {
     html: HTMLButtonElement | null;

@@ -1,0 +1,8 @@
+.no-errors-message {
+    font-size: 1.5em;
+    margin: 20px 0 0 20px;
+    border: 1px solid black;
+    padding: 10px;
+    background-color: lightgray;
+    float: left;
+}

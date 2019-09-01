@@ -1,10 +1,10 @@
-import {Config, ErrorObject, FullNameSheetErrors} from "./ValidatorModel";
-import * as elements from "../ValidatorView.private/elements";
-import {ConvertedFullNameErrors} from "./ValidatorPresenter";
-import Observer from "../Observer";
+import {Config, ErrorObject, FullNameSheetErrors, ListObject} from "../ValidatorModel";
+import * as elements from "../../ValidatorView.private/elements";
+import {ConvertedFullNameErrors, ConvertedValidationResult} from "../ValidatorPresenter";
+import Observer from "../../Observer";
 
 export default class ErrorsView {
-    workbookErrors: ConvertedFullNameErrors | ErrorObject[][];
+    validationResult: ConvertedFullNameErrors | (ErrorObject[] | ListObject)[];
     config: Config;
     root: HTMLElement;
     elements: {
@@ -32,9 +32,15 @@ export default class ErrorsView {
 
         if ( this.config.mode === 'fullName' ) {
             await this._renderFullNameErrors();
-        } else {
+        }
+
+        if ( this.config.mode === 'countCompanies' ) {
+            await this._renderNonRepeatingCompanies();
+        }
+        if ( this.config.mode !== 'fullName' && this.config.mode !== 'countCompanies') {
             await this._renderSingleCellErrors();
         }
+
     }
 
     whenErrorsRendered() {
@@ -44,25 +50,25 @@ export default class ErrorsView {
     }
 
     private async _renderSingleCellErrors(): Promise<void> {
-        if ( !Array.isArray(this.workbookErrors) ) {
+        if ( !Array.isArray(this.validationResult) ) {
             throw new Error('WorkBook Errors are not assignable to required format');
         }
 
         elements.appendToElem(this.root,
             this.elements.errorsArea.wrapper);
 
-        await this._loopAndRenderErrors(this.workbookErrors, 'array', 'in-course');
+        await this._loopAndRenderErrors(this.validationResult as ErrorObject[][], 'array', 'in-course');
 
         this._errorsRenderedSubject.notifyObservers();
     }
 
     private async _renderFullNameErrors() {
-        if ( Array.isArray(this.workbookErrors) ) {
+        if ( Array.isArray(this.validationResult) ) {
             throw new Error('WorkBook Errors are not assignable to required format');
         }
 
-        const matchErrors = this.workbookErrors.matchErrors;
-        const lackOfNamesErrors = this.workbookErrors.lackOfNamesErrors;
+        const matchErrors = this.validationResult.matchErrors;
+        const lackOfNamesErrors = this.validationResult.lackOfNamesErrors;
 
         elements.appendToElem(this.root,
             this.elements.errorsArea.wrapper);
@@ -83,7 +89,7 @@ export default class ErrorsView {
         this._errorsRenderedSubject.notifyObservers();
     }
 
-    private async _loopAndRenderErrors(workbookErrors: ErrorObject[][] | ErrorObject[][][],
+    private async _loopAndRenderErrors(workbookErrors: (ErrorObject[] | ErrorObject[][])[],
                               errorsListForm: 'array-in-array' | 'array',
                               numeration: 'group' | 'in-course'): Promise<void> {
         for (let i = 0; i < workbookErrors.length; i++) {
@@ -99,6 +105,7 @@ export default class ErrorsView {
                 list = (currentList as ErrorObject[])[0].list;
                 listName = (currentList as ErrorObject[])[0].listName;
             }
+
             const errorsListBlock = elements.createListErrorsBlock(listName, list);
 
             elements.appendToElem(this.elements.errorsArea.wrapper,
@@ -156,6 +163,57 @@ export default class ErrorsView {
 
         if (listForm === 'array') {
             await loopAndRenderErrorsArray((errorsList as ErrorObject[]), table, numeration);
+        }
+    }
+
+    private async _renderNonRepeatingCompanies() {
+        const companies = this.validationResult as ListObject[];
+        const sign = document.createElement('div');
+        sign.setAttribute('class', 'error-area__sign');
+        sign.innerHTML = 'Non-repeating companies:';
+
+        const wrapper = document.createElement('div');
+        wrapper.setAttribute('class', 'error-area__wrapper');
+
+        wrapper.append(sign);
+
+        this.root.append(wrapper);
+
+        for ( let i = 0; i < companies.length; i ++ ) {
+            const list = document.createElement('div');
+            list.setAttribute('class', 'list-companies-number');
+
+            list.innerHTML = `List No ${companies[i].list} (${companies[i].listName}) - ${companies[i].data}`;
+
+            const getElementThroughTimeout = async (element: HTMLElement) => {
+                return new Promise(resolve => {
+                    setTimeout(() => {
+                        resolve(element);
+                    }, 200);
+                });
+            };
+
+            await getElementThroughTimeout(list)
+                .then((list: HTMLElement) => {
+                        elements.appendToElem(wrapper, list)
+                    },
+                    null);
+
+        }
+    }
+
+    private _createElements(){
+        const createListName = (numberOfList: string | number, nameOfList: string) => {
+            const listName = document.createElement('div');
+
+            listName.setAttribute('class', 'list-errors__list-name');
+            listName.innerHTML = `List No ${numberOfList} (${nameOfList})`;
+
+            return listName;
+        };
+
+        return {
+            createListName: createListName
         }
     }
 }

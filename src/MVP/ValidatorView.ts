@@ -5,8 +5,8 @@ import Observer from "../Observer";
 import * as elements from "../ValidatorView.private/elements"
 import {toggleElements} from "../ValidatorView.private/toggleElements";
 import {doesHaveOnlyDigits} from "../doesHaveOnlyDigits";
-import ErrorsView from "./ErrorsView";
-import LogView from "./LogView";
+import ErrorsView from "./Errors/ErrorsView";
+import logView from "./Log/LogView";
 
 export interface Elements {
     root: HTMLElement;
@@ -43,7 +43,7 @@ export interface Elements {
 interface renderValidatorUI {
     elements: Elements;
     renderUI(): void;
-    renderErrors(errorsView: ErrorsView, logView: LogView): Promise<void>,
+    renderErrors(errorsView: ErrorsView, logView: logView): Promise<void>,
     whenValidationStarted(callback: (workbook: XLSX.WorkBook, options: Config) => void): void;
 }
 
@@ -119,10 +119,10 @@ export default class ValidatorView implements  renderValidatorUI {
                     mode: this.elements.settingsArea.modeSelect.select.value as Config['mode'],
                     row: '2',
                     cols: {
-                        firstCol: this.elements.settingsArea.colInputs.firstInput.value,
-                        secondCol: this.elements.settingsArea.colInputs.secondInput.value
+                        firstCol: this.elements.settingsArea.colInputs.firstInput.value.trim(),
+                        secondCol: this.elements.settingsArea.colInputs.secondInput.value.trim()
                     },
-                    list: this.elements.settingsArea.listInput.input.value.replace(/ /g, ''),
+                    lists: this.elements.settingsArea.listInput.input.value.replace(/ /g, ''),
                     fileName: this.elements.settingsArea.fileInput.input.files[0].name
                 };
 
@@ -142,19 +142,22 @@ export default class ValidatorView implements  renderValidatorUI {
 
                     callback(workbook, that.config);
                 };
+
                 reader.readAsArrayBuffer(file);
             }
         );
     }
 
-    async renderErrors(errorsView: ErrorsView, logView: LogView): Promise<void> {
+    async renderErrors(errorsView: ErrorsView, logView?: logView): Promise<void> {
         this.elements.root.append(this.elements.errorsArea);
 
         await errorsView.render(this.elements.errorsArea);
 
-        this.elements.logButton = logView.html;
+        if ( !!logView ) {
+            this.elements.logButton = logView.html;
 
-        logView.render(this.elements.settingsArea.wrapper);
+            logView.render(this.elements.settingsArea.wrapper);
+        }
 
         this._toggleSettings('on');
     }
@@ -162,6 +165,8 @@ export default class ValidatorView implements  renderValidatorUI {
     showNoErrorsMessage() {
         elements.appendToElem(this.elements.root,
             this.elements.noErrorsMessage);
+
+        this._toggleSettings('on');
     }
 
     processErrorMessage(error: string): void {
@@ -190,14 +195,14 @@ export default class ValidatorView implements  renderValidatorUI {
         if ( mode === 'fullName') {
             return ( this.elements.settingsArea.fileInput.input.files[0] &&
                 ( this.elements.settingsArea.modeSelect.select.selectedIndex !== 0 ) &&
-                ( doesHaveOnlyDigits(this.elements.settingsArea.colInputs.firstInput.value) ) &&
-                ( doesHaveOnlyDigits(this.elements.settingsArea.colInputs.secondInput.value) ) &&
+                ( doesHaveOnlyDigits(this.elements.settingsArea.colInputs.firstInput.value.trim()) ) &&
+                ( doesHaveOnlyDigits(this.elements.settingsArea.colInputs.secondInput.value.trim()) ) &&
                 ( this._isListNumberCorrect() )
             );
         } else {
             return ( this.elements.settingsArea.fileInput.input.files[0] &&
                 ( this.elements.settingsArea.modeSelect.select.selectedIndex !== 0 ) &&
-                ( doesHaveOnlyDigits(this.elements.settingsArea.colInputs.firstInput.value) ) &&
+                ( doesHaveOnlyDigits(this.elements.settingsArea.colInputs.firstInput.value.trim()) ) &&
                 ( this._isListNumberCorrect() )
             );
         }

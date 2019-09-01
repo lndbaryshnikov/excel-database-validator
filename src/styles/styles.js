@@ -18,12 +18,14 @@ import "./col-inputs/col-inputs__wrapper.css"
 import "./col-inputs/col-inputs__sign.css"
 import "./col-inputs/col-inputs__input.css"
 
-import "./list-input/list-input__wrapper.css"
-import "./list-input/list-input__sign.css"
-import "./list-input/list-input__input.css"
+import "./lists-input/lists-input__wrapper.css"
+import "./lists-input/lists-input__sign.css"
+import "./lists-input/lists-input__input.css"
 
 import "./button.css"
 import "./run-button.css"
+
+import "./no-errors-message.css"
 
 import "./errors_area/error-area__wrapper.css"
 import "./errors_area/error-area__sign.css"
@@ -39,4 +41,6 @@ import "./list-errors/list-errors__table-header.css"
 import "./list-errors/list-errors__header-cell.css"
 import "./list-errors/list-errors__table-row.css"
 import "./list-errors/list-errors__table-cell.css"
+
+import "./list-companies-number.css"
 

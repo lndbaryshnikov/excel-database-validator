@@ -1,6 +1,6 @@
-import {ErrorObject} from "./ValidatorModel";
-import {ConvertedFullNameErrors} from "./ValidatorPresenter";
-import Observer from "../Observer";
+import {ErrorObject} from "../ValidatorModel";
+import {ConvertedFullNameErrors} from "../ValidatorPresenter";
+import Observer from "../../Observer";
 
 export default class LogModel {
     workbookErrors: ConvertedFullNameErrors | ErrorObject[][];

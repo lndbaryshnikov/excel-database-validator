@@ -1,16 +1,18 @@
 import * as XLSX from "xlsx";
-import ValidatorModel, {Config, ErrorObject, FullNameSheetErrors} from "./ValidatorModel";
+import ValidatorModel, {Config, ErrorObject, FullNameSheetErrors, ListObject, ValidationResult} from "./ValidatorModel";
 import ValidatorView from "./ValidatorView";
-import ErrorsPresenter from "./ErrorsPresenter";
-import ErrorsView from "./ErrorsView";
-import LogPresenter from "./LogPresenter";
-import LogModel from "./LogModel";
-import LogView from "./LogView";
+import ErrorsPresenter from "./Errors/ErrorsPresenter";
+import ErrorsView from "./Errors/ErrorsView";
+import LogPresenter from "./Log/LogPresenter";
+import LogModel from "./Log/LogModel";
+import LogView from "./Log/LogView";
 
 export interface ConvertedFullNameErrors {
     matchErrors: ErrorObject[][][] | false;
     lackOfNamesErrors: ErrorObject[][] | false;
 }
+
+export type ConvertedValidationResult = ConvertedFullNameErrors | (ErrorObject[] | ListObject)[];
 
 
 export default class ValidatorPresenter {
@@ -22,7 +24,7 @@ export default class ValidatorPresenter {
         this.view = view;
 
         this.view.whenValidationStarted(this.validateWorkbookCallback());
-        this.model.whenWorkbookValidated(this.renderErrorsCallback(), this.showNoErrorsMessageCallback());
+        this.model.whenWorkbookValidated(this.renderResultCallback(), this.showNoErrorsMessageCallback());
         this.model.whenConfigurationErrorFound(this.showErrorMessageCallback());
     }
 
@@ -32,39 +34,37 @@ export default class ValidatorPresenter {
 
     validateWorkbookCallback() {
         return (workbook: XLSX.WorkBook, options: Config) => {
+            this.model.workbook = workbook;
             this.model.config = options;
 
-            this.model.validateWorkbook(workbook);
+            this.model.validateWorkbook();
         }
     }
 
-    renderErrorsCallback() {
-        return (workbookErrors: ErrorObject[][] | FullNameSheetErrors[], config: Config) => {
+    renderResultCallback() {
+        return (result: ValidationResult, config: Config) => {
 
-            let errors: ConvertedFullNameErrors | ErrorObject[][];
+            let errors: ConvertedFullNameErrors | (ErrorObject[] | ListObject)[];
 
             if ( config.mode === 'fullName' ) {
-                if ( Array.isArray(workbookErrors[0]) ) {
-                    throw new Error('WorkBook errors are not assignable to required format');
-                }
-
-                errors = this._convertFullNameErrors(workbookErrors as FullNameSheetErrors[]);
+                errors = this._convertFullNameErrors(result as FullNameSheetErrors[]);
             } else {
-                if ( !Array.isArray(workbookErrors[0]) ) {
-                    throw new Error('WorkBook errors are not assignable to required format');
-                }
-
-                errors = workbookErrors as ErrorObject[][];
+                errors = result as (ErrorObject[] | ListObject)[];
             }
 
             const errorsPresenter = new ErrorsPresenter(new ErrorsView());
             const logPresenter = new LogPresenter(new LogView(), new LogModel());
 
-            logPresenter.initialize(errors, config.mode);
             errorsPresenter.initialize(errors, config);
 
+            if ( config.mode !== 'countCompanies' ) {
+                logPresenter.initialize(errors as ConvertedFullNameErrors | ErrorObject[][], config.mode);
 
-            this.view.renderErrors(errorsPresenter.view, logPresenter.view);
+                this.view.renderErrors(errorsPresenter.view, logPresenter.view);
+            } else {
+                this.view.renderErrors(errorsPresenter.view);
+            }
+
         }
     }
 

@@ -103,7 +103,8 @@ export const createModeSelect = (): Elements['settingsArea']['modeSelect'] => {
         createOption('site', 'Site Address Errors'),
         createOption('ws', 'Whitespaces'),
         createOption('numbers', 'Only Numbers Errors'),
-        createOption('fullName', 'FullName Errors')
+        createOption('fullName', 'FullName Errors'),
+        createOption('countCompanies', 'Count Companies')
     );
 
     appendToElem(wrapper, sign, select);
@@ -144,15 +145,15 @@ export const createColInputs = (): Elements['settingsArea']['colInputs'] => {
 };
 
 export const createListInput = (): Elements['settingsArea']['listInput'] => {
-    const wrapper = createDivWithClass('list-input__wrapper');
+    const wrapper = createDivWithClass('lists-input__wrapper');
 
     const sign = create('div',
-        ['class', 'sign list-input__sign']
+        ['class', 'sign lists-input__sign']
     ) as HTMLDivElement;
     sign.innerHTML = 'Type lists number:';
 
     const input = create('input',
-        ['class', 'list-input__input'],
+        ['class', 'lists-input__input'],
         ['type', 'text']
     ) as HTMLInputElement;
 
@@ -230,7 +231,7 @@ export const createErrorsArea = (): {wrapper: HTMLDivElement, anotherErrorsSign:
 
     const anotherErrorsSign = createAnotherErrorsSign();
 
-    sign.innerHTML = 'Errors list:';
+    sign.innerHTML = 'Errors lists:';
 
     appendToElem(wrapper, sign);
 

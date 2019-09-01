@@ -1,4 +1,4 @@
-.list-input__input {
+.lists-input__input {
     /*font-size: 1.1em;*/
     float: right;
     display: inline-block;
@@ -30,15 +30,15 @@
     cursor: pointer;
 }
 
-.list-input__input:disabled {
+.lists-input__input:disabled {
     color: gray;
 }
 
-.list-input__input:hover {
+.lists-input__input:hover {
     background-color: gray;
 }
 
-.list-input__input:disabled:hover {
+.lists-input__input:disabled:hover {
     background-color: lightgray;
     cursor: default;
 }

@@ -4,20 +4,17 @@ import Observer from "../Observer";
 import removeDiacritics from "../removeDiacritics";
 import * as validators from "../ValidatorModel.private/validators"
 import doesHaveWhitespaces from "../doesHaveWhitespaces";
-import {getListsArray} from "../ValidatorModel.private/getListsArray";
-import {doListsFromArrayExist} from "../ValidatorModel.private/doListsFromArrayExist";
-import {doesColExist} from "../ValidatorModel.private/doesColExist";
 import {getCell} from "../ValidatorModel.private/getCell";
 import {addPropertyToErrors} from "../ValidatorModel.private/addPropertyToErrors";
 
 export interface Config {
-    mode: 'none' | 'email' | 'phone' | 'site' | 'ws' | 'numbers' | 'fullName';
+    mode: 'none' | 'email' | 'phone' | 'site' | 'ws' | 'numbers' | 'fullName' | 'countCompanies';
     row: string
     cols: {
         firstCol: string;
         secondCol: string;
     }
-    list: string;
+    lists: string | ConvertedLists;
     fileName: string;
 }
 
@@ -31,65 +28,125 @@ export interface ErrorObject {
     fileName: string;
 }
 
+export interface ListObject {
+    list: string;
+    listName: string;
+    data: string;
+    fileName: string;
+}
+
 export interface FullNameSheetErrors {
     lackOfNamesErrors: ErrorObject[] | false;
     matchErrors: ErrorObject[][] | false;
 }
 
+interface ConvertedLists {
+    lists: number[],
+    type: string
+}
+
+export type ValidationResult = (ErrorObject[] | FullNameSheetErrors | ListObject)[];
+
 interface ValidateData {
+    workbook: XLSX.WorkBook;
     config: Config;
 
-    validateWorkbook(workbook: XLSX.WorkBook): void;
+    validateWorkbook(): void;
 }
 
 export default class ValidatorModel implements  ValidateData {
-    config: Config;
+    private _workbook: XLSX.WorkBook;
+    private _config: Config;
+
+    private _currentSheet: {
+        sheet: XLSX.WorkSheet;
+        range: XLSX.Range;
+        name: string;
+        number: string;
+    };
+    private _currentCell: {
+        cell: XLSX.CellObject;
+        value: string;
+        row: string;
+        col: string;
+    };
+    private _validationResult: ValidationResult = [];
+
     private _validationCompletedSubject = new Observer();
     private _configurationErrorFoundSubject = new Observer();
 
-    validateWorkbook(workbook: XLSX.WorkBook): void {
-        const sheetNames = workbook.SheetNames;
+    set workbook(workbook: XLSX.WorkBook) {
+        this._workbook = workbook;
+    }
 
-        const workbookErrors:  (ErrorObject[] | FullNameSheetErrors)[] = [];
+    set config(config: Config) {
+        this._config = config;
+    }
 
-        //lists = [first,...., last]: first and last inclusively
-        //lists - lists from config, not for iteration
-        const lists = getListsArray(this.config.list, sheetNames);
+    private _setCurrentSheet(iterationSheetNumber: number) {
+        const sheetNames = this._workbook.SheetNames;
 
-        if ( doListsFromArrayExist(lists.lists, sheetNames).result === false ) {
-            const error = doListsFromArrayExist(lists.lists, sheetNames).error;
+        const sheet = this._workbook.Sheets[sheetNames[iterationSheetNumber]];
+        const number = String(iterationSheetNumber + 1);
+        const name = sheetNames[iterationSheetNumber];
 
-            this._configurationErrorFoundSubject.notifyObservers(error);
+        const range: XLSX.Range = XLSX.utils.decode_range(sheet['!ref']);
 
-            return;
+        this._currentSheet = {
+            sheet: sheet,
+            range: range,
+            name: name,
+            number: number
         }
 
-        if ( lists.type === 'listsCollection' ) {
-            lists.lists.forEach((currentListNumber) => {
-                if ( this._doColumnsExist(workbook, currentListNumber) !== true ) {
-                    const error = this._doColumnsExist(workbook, currentListNumber);
+    }
 
-                    this._configurationErrorFoundSubject.notifyObservers(error);
+    private _setCurrentCell(iterationRow: number, iterationCol: number) {
+        const cell = this._currentSheet.sheet[ XLSX.utils.encode_cell({r: iterationRow, c: iterationCol}) ];
 
-                    return;
-                }
+        const value = !!cell ? cell.v : undefined;
+        this._currentCell = {
+            cell: cell,
+            value: value,
+            row: `${iterationRow + 1}`,
+            col: `${iterationCol + 1}`
+        };
+    }
+
+    private _cleanModel() {
+        this._validationResult = [];
+    }
+
+    validateWorkbook(): void {
+
+        this._cleanModel();
+        this._convertListsString();
+        //this.lists.lists = [first,...., last]: first and last inclusively
+        //this.lists.lists - lists from _config, not for iteration
+
+        if ( typeof this._config.lists === 'string') {
+            throw new Error('Lists might not be converted(they should be of object type)');
+        }
+
+        if ( this._checkConvertedLists().result === false ) return;
+
+        this._config.lists.type;
+        this._config.lists.lists;
+
+        if ( this._config.lists.type === 'listsCollection' ) {
+            this._config.lists.lists.forEach((currentListNumber) => {
+
+                if ( this._checkColumns(currentListNumber).result === false ) return;
 
                 const currentListIterationNumber = currentListNumber - 1;
 
-                const currentSheet: XLSX.WorkSheet = workbook.Sheets[sheetNames[currentListIterationNumber]];
+                this._setCurrentSheet(currentListIterationNumber);
 
-                const sheetErrors = this._validateSheet(currentSheet);
-
-                if ( sheetErrors === false ) return;
-
-                this._addListPropertiesToErrors(sheetErrors, String(currentListIterationNumber + 1),
-                    sheetNames[currentListIterationNumber]);
-
-                workbookErrors.push(sheetErrors);
+                this._validateSheet();
             });
         } else {
-            let firstListIterationNumber: number = lists.lists[0] - 1;
-            const lastListIterationNumber: number = lists.lists[lists.lists.length - 1] - 1;
+            let firstListIterationNumber: number = this._config.lists.lists[0] - 1;
+            const lastListIterationNumber: number = this._config.lists.lists[this._config.lists.lists.length - 1] - 1;
 
             if ( firstListIterationNumber > lastListIterationNumber ) {
                 this._configurationErrorFoundSubject.notifyObservers
@@ -100,40 +157,24 @@ export default class ValidatorModel implements  ValidateData {
 
             for (let currentListIterationNumber = firstListIterationNumber;
                  currentListIterationNumber <= lastListIterationNumber; currentListIterationNumber++) {
-                if ( this._doColumnsExist(workbook, currentListIterationNumber) !== true ) {
-                    const error = this._doColumnsExist(workbook, currentListIterationNumber);
+                if ( this._checkColumns(currentListIterationNumber).result === false ) return;
 
-                    this._configurationErrorFoundSubject.notifyObservers(error);
+                this._setCurrentSheet(currentListIterationNumber);
 
-                    return;
-                }
-
-                const currentSheet = workbook.Sheets[sheetNames[currentListIterationNumber]];
-
-                const sheetErrors = this._validateSheet(currentSheet);
-
-                if ( sheetErrors === false ) continue;
-
-                this._addListPropertiesToErrors(sheetErrors, String(currentListIterationNumber + 1),
-                    sheetNames[currentListIterationNumber]);
-
-                workbookErrors.push(sheetErrors);
+                this._validateSheet();
             }
         }
 
-        if ( workbookErrors.length !== 0 ) {
-            this._validationCompletedSubject.notifyObservers(workbookErrors);
-        } else {
-            this._validationCompletedSubject.notifyObservers(false);
-        }
+            this._validationCompletedSubject.notifyObservers();
+
     }
 
-    whenWorkbookValidated(errorsFoundCallback: (workbookErrors: ErrorObject[][] | FullNameSheetErrors[], config: Config) => void,
+    whenWorkbookValidated(errorsFoundCallback: (result: ValidationResult, config: Config) => void,
                           noErrorsFoundCallback: () => void): void {
         this._validationCompletedSubject.addObserver(
-            (workbookErrors: ErrorObject[][] | FullNameSheetErrors[] | false) => {
-                if ( workbookErrors!== false ) {
-                    errorsFoundCallback(workbookErrors, this.config);
+            () => {
+                if ( this._validationResult.length !== 0 ) {
+                    errorsFoundCallback(this._validationResult, this._config);
                 } else {
                     noErrorsFoundCallback();
                 }
@@ -147,28 +188,34 @@ export default class ValidatorModel implements  ValidateData {
         });
     }
 
-    private _validateSheet(sheet: XLSX.WorkSheet): ErrorObject[] | FullNameSheetErrors | false {
-        const range: XLSX.Range = XLSX.utils.decode_range(sheet['!ref']);
-
-        if ( this.config.mode === 'fullName' ) {
-            return this._validateFullNamesSheet(sheet);
+    private _validateSheet(): void {
+        if ( this._config.mode === 'fullName' ) {
+            this._validateFullNamesSheet();
         }
 
+        if ( this._config.mode === 'countCompanies' ) {
+            this._validateNonRepeatingSheetCompanies();
+        }
+
+        if ( this._config.mode !== 'fullName' && this._config.mode !== 'countCompanies' ) {
+            this._validateSingleCellSheet();
+        }
+    }
+
+    private _validateSingleCellSheet(): void {
         const sheetErrors: ErrorObject[]  = [];
 
-        let rowForIteration = Number(this.config.row) - 1;
-        let colForIteration = Number(this.config.cols.firstCol) - 1;
+        let rowForIteration = Number(this._config.row) - 1;
+        let colForIteration = Number(this._config.cols.firstCol) - 1;
 
-        for (rowForIteration; rowForIteration < range.e.r; rowForIteration++) {
-            const cell = getCell(sheet, rowForIteration, colForIteration);
+        for (rowForIteration; rowForIteration < this._currentSheet.range.e.r; rowForIteration++) {
+            this._setCurrentCell(rowForIteration, colForIteration);
 
-            if ( typeof cell === 'undefined' ) continue;
+            if ( typeof this._currentCell.cell === 'undefined' ) continue;
 
-            const cellValue = cell.v;
+            if ( typeof this._currentCell.value === 'undefined' ) continue;
 
-            if ( typeof cellValue === 'undefined' ) continue;
-
-            const errorObject = this._validateCellValue( String(cellValue) );
+            const errorObject = this._getCellValueErrors();
 
             if ( !!errorObject ) {
                 errorObject.row = String(rowForIteration + 1);
@@ -177,40 +224,89 @@ export default class ValidatorModel implements  ValidateData {
             }
         }
 
-        if ( sheetErrors.length !==0 ) return sheetErrors;
-
-        return false;
+        if ( sheetErrors.length !==0 ) {
+            this._validationResult.push(sheetErrors);
+        }
     }
 
-    private _validateFullNamesSheet(sheet: XLSX.WorkSheet): FullNameSheetErrors | false {
-        const firstNameCol = this.config.cols.firstCol;
-        const secondNameCol = this.config.cols.secondCol;
+    private _validateFullNamesSheet(): void {
+        const fullNamesAndLackOfNamesErrors = this._getFullNamesObjectsArrayAndLackOfNamesErrors();
 
-        const fullNamesAndLackOfNamesErrors = this._pushAllFullNamesToArrayAndReturnErrors(sheet, firstNameCol, secondNameCol);
         const lackOfNamesErrors = fullNamesAndLackOfNamesErrors.errors;
-        const fullNames = fullNamesAndLackOfNamesErrors.fullNames;
+        const fullNames = fullNamesAndLackOfNamesErrors.fullNamesObjects;
 
-        const matchErrors = this._returnArrayMatchErrors(fullNames);
+        const matchErrors = this._getFullNameMatchErrors(fullNames);
 
         let hasError = false;
 
         if ( lackOfNamesErrors !== false ) hasError = true;
         if ( matchErrors !== false ) hasError = true;
 
-        if ( !hasError ) return false;
-
-        return {
-            lackOfNamesErrors: lackOfNamesErrors,
-            matchErrors: matchErrors
+        if ( hasError ) {
+            this._validationResult.push({
+                lackOfNamesErrors: lackOfNamesErrors,
+                matchErrors: matchErrors
+            })
         }
     }
 
-    private _validateCellValue(cellValue: string): ErrorObject | false {
+    private _validateNonRepeatingSheetCompanies(): ListObject | false {
+        const getSheetColCellObjectsArray = (sheet: XLSX.Sheet): string[] => {
+            const range = XLSX.utils.decode_range(sheet['!ref']);
+
+            const col: number = Number(this._config.cols.firstCol);
+
+            const array: string[] = [];
+
+            for(let i = Number(this._config.row) - 1; i < range.e.r; i++) {
+                const value = !!getCell( sheet, i, Number(col) - 1 ) ?
+                    (getCell( sheet, i, Number(col) - 1 ).v as string).trim() : undefined;
+
+                if ( !!value ) {
+                    array.push(value);
+                }
+            }
+
+
+            return array;
+        };
+
+        const companies = getSheetColCellObjectsArray(this._currentSheet.sheet);
+
+        if ( companies.length === 0 ) return;
+
+        let nonRepeatingCompaniesNumber: number = 0;
+
+        for ( let i = 0; i < companies.length; i++ ) {
+            const value = companies[i];
+
+            if ( value === undefined ) continue;
+
+            nonRepeatingCompaniesNumber++;
+
+            for (let j = i + 1; j < companies.length; j++) {
+                const comparisonValue = companies[j];
+
+                if ( value === comparisonValue ) {
+                    companies[j] = undefined;
+                }
+            }
+        }
+
+        this._validationResult.push({
+            list: this._currentSheet.number,
+            listName: this._currentSheet.name,
+            data: `${nonRepeatingCompaniesNumber}`,
+            fileName: this._config.fileName
+        });
+    }
+
+    private _getCellValueErrors(): ErrorObject | false {
         let isValid: boolean;
         let error: boolean | string = false;
-        const trimmedCellValue = String(cellValue).trim();
+        const trimmedCellValue = this._currentCell.value.trim();
 
-        const mode = this.config.mode;
+        const mode = this._config.mode;
 
         if ( mode === "email"   )  isValid = validators.isEmailValid(trimmedCellValue);
         if ( mode === "phone"   )  isValid = validators.isPhoneNumberValid(trimmedCellValue);
@@ -218,8 +314,8 @@ export default class ValidatorModel implements  ValidateData {
         if ( mode === "numbers" )  isValid = validators.isOnlyNumbersValid(trimmedCellValue);
         if ( mode === "ws"      )  isValid = true;
 
-        if ( doesHaveWhitespaces(cellValue) || !isValid) {
-            if (!isValid && doesHaveWhitespaces(cellValue)) {
+        if ( doesHaveWhitespaces(this._currentCell.value) || !isValid) {
+            if (!isValid && doesHaveWhitespaces(this._currentCell.value)) {
                 error = "incorrect/whitespaces";
             } else if (!isValid) {
                 error = "incorrect";
@@ -229,126 +325,134 @@ export default class ValidatorModel implements  ValidateData {
         if ( error === false ) return false;
 
         return {
-            row: '',
-            col: this.config.cols.firstCol,
-            value: cellValue,
+            row: this._currentCell.row,
+            col: this._config.cols.firstCol,
+            value: this._currentCell.value,
             error: error,
-            list: '',
-            listName: '',
-            fileName: ''
+            list: this._currentSheet.number,
+            listName: this._currentSheet.name,
+            fileName: this._config.fileName
         };
     }
 
-    private _pushAllFullNamesToArrayAndReturnErrors(sheet: XLSX.WorkSheet, firstNameCol: string, secondNameCol:string):
-        {fullNames: string[], errors: ErrorObject[] | false} {
-        const range = XLSX.utils.decode_range(sheet['!ref']);
-        const end = range.e.r;
+    private _getFullNamesObjectsArrayAndLackOfNamesErrors():
+        {fullNamesObjects: ErrorObject[], errors: ErrorObject[] | false} {
+        const firstNameCol = this._config.cols.firstCol;
+        const secondNameCol = this._config.cols.secondCol;
+
+        // const range = XLSX.utils.decode_range(this._currentSheet.sheet['!ref']);
+        // const end = range.e.r;
 
         const errors: ErrorObject[] = [];
-        const fullNames: string[] = [];
+        const fullNames: ErrorObject[] = [];
 
-        for (let i = Number(this.config.row) - 1; i < end; i++) {
-            const firstName = !!getCell( sheet, i, Number(firstNameCol) - 1 ) ?
-                (getCell( sheet, i, Number(firstNameCol) - 1 ).v as string).trim() : undefined;
+        const isRowEmpty = (sheet: XLSX.Sheet, rowNumber: number): boolean => {
+            const range = XLSX.utils.decode_range(sheet['!ref']);
 
-            const secondName = !!getCell( sheet, i, Number(secondNameCol) -  1 ) ?
-                (getCell( sheet, i, Number(secondNameCol) - 1 ).v as string).trim() : undefined;
+            for (let i = 0; i < range.e.c; i++) {
+                const cell = getCell(sheet, rowNumber, i);
 
-            if ( !firstName || !secondName ) {
-                if( !firstName && !secondName ) {
-                    errors.push({
-                        row: String(i + 1),
-                        col: `${firstNameCol} | ${secondNameCol}`,
-                        value: ' - ',
-                        error: 'no full name',
-                        list: '',
-                        listName: '',
-                        fileName: this.config.fileName
-                    });
-                } else if ( !firstName ) {
-                    errors.push({
-                        row: String(i + 1),
-                        col: `${firstNameCol} | ${secondNameCol}`,
-                        value: secondName.trim(),
-                        error: 'no first name',
-                        list: '',
-                        listName: '',
-                        fileName: this.config.fileName
-                    });
-                } else {
-                    errors.push({
-                        row: String(i + 1),
-                        col: `${firstNameCol} | ${secondNameCol}`,
-                        value: firstName.trim(),
-                        error: 'no second name',
-                        list: '',
-                        listName: '',
-                        fileName: this.config.fileName
-                    });
+                if ( typeof cell !== 'undefined' && typeof cell.v !== 'undefined' ) {
+                    return false;
                 }
             }
 
-            let result;
+            return true;
+        };
 
-            if ( !firstName || !secondName ) result = undefined;
-            else result = firstName + ' ' + secondName;
+        for (let i = Number(this._config.row) - 1; i < this._currentSheet.range.e.r; i++) {
+            this._setCurrentCell(i, Number(firstNameCol) - 1);
 
-            fullNames.push( result );
+            const firstName = !!this._currentCell.cell ?
+                this._currentCell.value.trim() : undefined;
 
+            this._setCurrentCell(i, Number(secondNameCol) - 1);
+
+            const secondName = !!this._currentCell.cell ?
+                this._currentCell.value.trim() : undefined;
+
+            //check for empty row may be unnecessary
+            if ( (!firstName || !secondName) && !isRowEmpty(this._currentSheet.sheet, i) ) {
+
+                let error: ErrorObject;
+
+                if( !firstName && !secondName ) {
+                    // if ( isRowEmpty(this._currentSheet.sheet, i) ) continue;
+
+                    error = this._createErrorObject('no full name');
+
+                    error.col = `${firstNameCol} | ${secondNameCol}`;
+                    error.value = ' - ';
+
+                    errors.push(error);
+                } else if ( !firstName ) {
+                    error = this._createErrorObject('no first name');
+
+                    error.col = `${firstNameCol} | ${secondNameCol}`;
+                    error.value = `${secondName}`;
+
+                    errors.push(error);
+                } else {
+                    error = this._createErrorObject('no second name');
+
+                    error.col = `${firstNameCol} | ${secondNameCol}`;
+                    error.value = `${firstName}`;
+
+
+                    errors.push(error);
+                }
+            }
+
+            let result: ErrorObject;
+
+            if ( firstName && secondName ) {
+                result = this._createErrorObject('');
+
+                result.col = `${firstNameCol} | ${secondNameCol}`;
+                result.value = firstName + ' ' + secondName;
+
+                fullNames.push( result );
+            }
 
         }
 
         if ( errors.length !== 0 ) {
             return {
-                fullNames: fullNames,
+                fullNamesObjects: fullNames,
                 errors: errors
             };
         }
 
         return {
-            fullNames: fullNames,
+            fullNamesObjects: fullNames,
             errors: false
         }
     }
 
-    private _returnArrayMatchErrors(_array: string[]): ErrorObject[][] | false {
-        const arr = _array.slice(0);
+    private _getFullNameMatchErrors(_fullNames: ErrorObject[]): ErrorObject[][] | false {
+        const fullNames = _fullNames.slice(0);
         const arrayOverlaps: ErrorObject[][] = [];
 
-        for (let i = 0, iRow = Number(this.config.row); i < arr.length; i++, iRow++) {
-            const value = arr[i];
+        for (let i = 0; i < fullNames.length; i++) {
 
-            if ( !value ) continue;
+            if ( !fullNames[i] ) continue;
 
             const elemOverlaps: ErrorObject[] =[];
 
-            elemOverlaps.push({
-                row: (String(iRow)),
-                col: `${this.config.cols.firstCol} - ${this.config.cols.secondCol}`,
-                value: value,
-                error: 'overlap',
-                list: '',
-                listName: '',
-                fileName: this.config.fileName
-            });
+            _fullNames[i].error = 'overlap';
 
+            elemOverlaps.push(_fullNames[i]);
 
-            for (let j = i + 1, jRow = iRow + 1; j < arr.length; j++, jRow++) {
+            for (let j = i + 1; j < fullNames.length; j++) {
 
-                if ( !arr[j] ) continue;
+                if ( !fullNames[j] ) continue;
 
-                if ( removeDiacritics( String(value).trim() ) === removeDiacritics( String(arr[j]).trim() ) ) {
-                    elemOverlaps.push({
-                        row: String(jRow),
-                        col: `${this.config.cols.firstCol} - ${this.config.cols.secondCol}`,
-                        value: arr[j],
-                        error: 'overlap',
-                        list: '',
-                        listName: '',
-                        fileName: this.config.fileName
-                    });
+                if ( removeDiacritics( String(fullNames[i].value).trim() ) === removeDiacritics( String(fullNames[j].value).trim() ) ) {
+                    _fullNames[j].error = 'overlap';
 
-                    arr[j] = undefined;
+                    elemOverlaps.push(_fullNames[j]);
+
+                    fullNames[j] = undefined;
                 }
             }
 
@@ -362,36 +466,63 @@ export default class ValidatorModel implements  ValidateData {
         return false;
     }
 
-    private  _doColumnsExist(workbook: XLSX.WorkBook, listNumber: number): string | true {
-        const sheetNames = workbook.SheetNames;
-        const sheet = workbook.Sheets[sheetNames[listNumber]];
+    private _createErrorObject(error: string): ErrorObject {
+        return {
+            row: this._currentCell.row,
+            col: this._currentCell.col,
+            value: this._currentCell.value,
+            error: error,
+            list: this._currentSheet.number,
+            listName: this._currentSheet.name,
+            fileName: this._config.fileName
+        }
+    }
+
+    private  _checkColumns(listNumber: number): {result: boolean} {
+        const sheetNames = this._workbook.SheetNames;
+        const sheet = this._workbook.Sheets[sheetNames[listNumber]];
         const range: XLSX.Range = XLSX.utils.decode_range(sheet['!ref']);
 
         const list = `list No ${listNumber}`;
 
-        const firstColHere: boolean = doesColExist(Number(this.config.cols.firstCol), range);
+        let result: boolean = true;
+        let error: false | string = false;
+
+        const doesColExist = (col: number, range: XLSX.Range): boolean => {
+            return ( col >= (range.s.c + 1) && col <= (range.e.c + 1) );
+        };
+
+        const firstColHere: boolean = doesColExist(Number(this._config.cols.firstCol), range);
 
         if ( !firstColHere ) {
-            return `Column No ${this.config.cols.firstCol} doesn't exist on ${list}`;
+            result = false;
+            error =  `Column No ${this._config.cols.firstCol} doesn't exist on ${list}`;
         }
 
-        const secondColHere: boolean = doesColExist(Number(this.config.cols.secondCol), range);
+        const secondColHere: boolean = doesColExist(Number(this._config.cols.secondCol), range);
 
-        if ( this.config.mode === 'fullName'  && !secondColHere ) {
-            return `Column No ${this.config.cols.secondCol} doesn't exist on ${list}`
+        if ( this._config.mode === 'fullName'  && !secondColHere ) {
+            result = false;
+            error =  `Column No ${this._config.cols.secondCol} doesn't exist on ${list}`
         }
 
-        return true;
+        if ( result === false && error !== false ) {
+            this._configurationErrorFoundSubject.notifyObservers(error);
+        }
+
+        return {
+            result: result
+        };
     }
 
     private _addListPropertiesToErrors(errors: FullNameSheetErrors | ErrorObject[], listNumber: string, listName: string): void {
-        if ( this.config.mode === 'fullName' ) {
+        if ( this._config.mode === 'fullName' ) {
             let key: keyof FullNameSheetErrors;
 
             for (key in errors as FullNameSheetErrors) {
                 if ( (errors as FullNameSheetErrors)[key] !== false ) {
                     addPropertyToErrors((errors as FullNameSheetErrors)[key] as ErrorObject[][] | ErrorObject[],
-                        'list', listNumber);
+                        'lists', listNumber);
                     addPropertyToErrors((errors as FullNameSheetErrors)[key] as ErrorObject[][] | ErrorObject[],
                         'listName', listName);
                 }
@@ -400,9 +531,89 @@ export default class ValidatorModel implements  ValidateData {
             return;
         }
 
-        addPropertyToErrors(errors as ErrorObject[], 'list',
+        addPropertyToErrors(errors as ErrorObject[], 'lists',
             listNumber);
         addPropertyToErrors(errors as ErrorObject[], 'listName',
             listName);
+    }
+
+    private _convertListsString(): void {
+        //convert no whitespaces list string
+        const sheetNames = this._workbook.SheetNames;
+
+        if ( typeof this._config.lists !== 'string') {
+            throw new Error('Lists might be already converted(they are not of string type)')
+        }
+
+        //lists = [first,...., last]: first and last inclusively
+        let lists: number[];
+        let type: 'fullWorkbook' | 'singleList' | 'listsCollection' | 'listsRange';
+
+        if ( this._config.lists === '' ) {
+            lists = [1, sheetNames.length];
+            type = 'fullWorkbook';
+        }
+
+        if ( /\d+/.test(this._config.lists) ) {
+
+            lists = [Number(this._config.lists), Number(this._config.lists)];
+            type = 'singleList';
+        }
+
+        if ( this._config.lists.match(/,/) !== null ) {
+            const array: string[] = this._config.lists.split(',');
+
+            //CHECK THIS LATER IF LISTS HAVEN'T BECOME NUMBERS
+            lists = array.map((list) => Number(list));
+            type = 'listsCollection'
+        }
+
+        if (this._config.lists.match(/-/) !== null) {
+            if (this._config.lists.match(/-/).length === 1) {
+                const array: string[] = this._config.lists.split('-');
+
+                lists = array.map(list => Number(list));
+                type = 'listsRange';
+            }
+        }
+
+        this._config.lists = {
+            lists: lists,
+            type: type
+        }
+    }
+
+    private _checkConvertedLists(): {result: boolean} {
+        const sheetNames = this._workbook.SheetNames;
+
+        if ( typeof this._config.lists === "string" ) {
+            throw new Error('Lists might not be converted(they should be of object type)');
+        }
+
+        const createListError = (listNumber: string | number): string => {
+            return `List No ${listNumber} doesn't exist`
+        };
+        let result: boolean = true;
+        let error: string;
+
+        const doesListExist = (list: number, sheetNames: string[] ): boolean => {
+            if ( list > 0 && list <= sheetNames.length ) return true;
+        };
+
+        for (let i = 0; i < this._config.lists.lists.length; i++) {
+            if (!doesListExist(this._config.lists.lists[i], sheetNames)) {
+                result = false;
+                error = createListError(this._config.lists.lists[i]);
+                break;
+            }
+        }
+
+        if ( !result ) {
+            this._configurationErrorFoundSubject.notifyObservers(error);
+        }
+
+        return {
+            result: result
+        }
     }
 }

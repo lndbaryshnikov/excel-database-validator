@@ -1,7 +1,7 @@
 import LogModel from "./LogModel";
 import LogView from "./LogView";
-import {ConvertedFullNameErrors} from "./ValidatorPresenter";
-import {Config, ErrorObject} from "./ValidatorModel";
+import {ConvertedFullNameErrors} from "../ValidatorPresenter";
+import {Config, ErrorObject} from "../ValidatorModel";
 
 export default class LogPresenter {
     model: LogModel;
