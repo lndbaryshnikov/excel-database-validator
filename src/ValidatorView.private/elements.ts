@@ -1,4 +1,4 @@
-import {Elements} from "../MVP/ValidatorView";
+import {Elements} from "../MVP/Validator/ValidatorView";
 import {selfDownloadFile} from "./selfDownLoadFile";
 
 export const appendToElem = (root: HTMLElement, ...elements: HTMLElement[]): void => {
@@ -98,12 +98,12 @@ export const createModeSelect = (): Elements['settingsArea']['modeSelect'] => {
 
     appendToElem(select,
         createOption('none', 'Choose...'),
-        createOption('email', 'Email Errors'),
-        createOption('phone', 'Phone Number Errors'),
-        createOption('site', 'Site Address Errors'),
+        createOption('email', 'Email Result'),
+        createOption('phone', 'Phone Number Result'),
+        createOption('site', 'Site Address Result'),
         createOption('ws', 'Whitespaces'),
-        createOption('numbers', 'Only Numbers Errors'),
-        createOption('fullName', 'FullName Errors'),
+        createOption('numbers', 'Only Numbers Result'),
+        createOption('fullName', 'FullName Result'),
         createOption('countCompanies', 'Count Companies')
     );
 
@@ -231,7 +231,7 @@ export const createErrorsArea = (): {wrapper: HTMLDivElement, anotherErrorsSign:
 
     const anotherErrorsSign = createAnotherErrorsSign();
 
-    sign.innerHTML = 'Errors lists:';
+    sign.innerHTML = 'Result lists:';
 
     appendToElem(wrapper, sign);
 

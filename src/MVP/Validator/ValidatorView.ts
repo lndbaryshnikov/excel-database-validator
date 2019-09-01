@@ -1,12 +1,12 @@
 import * as XLSX from "xlsx";
 
 import {Config} from "./ValidatorModel";
-import Observer from "../Observer";
-import * as elements from "../ValidatorView.private/elements"
-import {toggleElements} from "../ValidatorView.private/toggleElements";
-import {doesHaveOnlyDigits} from "../doesHaveOnlyDigits";
-import ErrorsView from "./Errors/ErrorsView";
-import logView from "./Log/LogView";
+import Observer from "../../Observer";
+import * as elements from "../../ValidatorView.private/elements"
+import {toggleElements} from "../../ValidatorView.private/toggleElements";
+import {doesHaveOnlyDigits} from "../../doesHaveOnlyDigits";
+import ResultView from "../Result/ErrorsView";
+import logView from "../Log/LogView";
 
 export interface Elements {
     root: HTMLElement;
@@ -43,7 +43,7 @@ export interface Elements {
 interface renderValidatorUI {
     elements: Elements;
     renderUI(): void;
-    renderErrors(errorsView: ErrorsView, logView: logView): Promise<void>,
+    renderErrors(errorsView: ResultView, logView: logView): Promise<void>,
     whenValidationStarted(callback: (workbook: XLSX.WorkBook, options: Config) => void): void;
 }
 
@@ -148,7 +148,7 @@ export default class ValidatorView implements  renderValidatorUI {
         );
     }
 
-    async renderErrors(errorsView: ErrorsView, logView?: logView): Promise<void> {
+    async renderErrors(errorsView: ResultView, logView?: logView): Promise<void> {
         this.elements.root.append(this.elements.errorsArea);
 
         await errorsView.render(this.elements.errorsArea);

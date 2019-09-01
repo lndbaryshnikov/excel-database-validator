@@ -1,11 +1,11 @@
 import * as XLSX from 'xlsx';
 
-import Observer from "../Observer";
-import removeDiacritics from "../removeDiacritics";
-import * as validators from "../ValidatorModel.private/validators"
-import doesHaveWhitespaces from "../doesHaveWhitespaces";
-import {getCell} from "../ValidatorModel.private/getCell";
-import {addPropertyToErrors} from "../ValidatorModel.private/addPropertyToErrors";
+import Observer from "../../Observer";
+import removeDiacritics from "../../removeDiacritics";
+import * as validators from "../../ValidatorModel.private/validators"
+import doesHaveWhitespaces from "../../doesHaveWhitespaces";
+import {getCell} from "../../ValidatorModel.private/getCell";
+import {addPropertyToErrors} from "../../ValidatorModel.private/addPropertyToErrors";
 
 export interface Config {
     mode: 'none' | 'email' | 'phone' | 'site' | 'ws' | 'numbers' | 'fullName' | 'countCompanies';

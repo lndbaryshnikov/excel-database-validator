@@ -1,5 +1,5 @@
-import {ErrorObject} from "../ValidatorModel";
-import {ConvertedFullNameErrors} from "../ValidatorPresenter";
+import {ErrorObject} from "../Validator/ValidatorModel";
+import {ConvertedFullNameErrors} from "../Validator/ValidatorPresenter";
 import Observer from "../../Observer";
 
 export default class LogModel {
@@ -18,10 +18,10 @@ export default class LogModel {
 
     createLogForSingleCellErrors(): void {
         if ( !Array.isArray(this.workbookErrors) ) {
-            throw new Error('WorkBook Errors are not assignable to required format');
+            throw new Error('WorkBook Result are not assignable to required format');
         }
 
-        let text = "Errors for \"" + this.workbookErrors[0][0].fileName + "\":";
+        let text = "Result for \"" + this.workbookErrors[0][0].fileName + "\":";
 
         text += this._createLogForErrors((this.workbookErrors as ErrorObject[][]), 'array');
 
@@ -30,7 +30,7 @@ export default class LogModel {
 
     createLogForConvertedFullNameErrors(): void {
         if ( Array.isArray(this.workbookErrors) ) {
-            throw new Error('WorkBook Errors are not assignable to required format');
+            throw new Error('WorkBook Result are not assignable to required format');
         }
 
         const matchErrors = this.workbookErrors.matchErrors;
@@ -44,7 +44,7 @@ export default class LogModel {
             fileName = lackOfNamesErrors[0][0].fileName;
         }
 
-        let text = "Errors for \"" + fileName + "\":";
+        let text = "Result for \"" + fileName + "\":";
 
 
         if ( matchErrors !== false ) {

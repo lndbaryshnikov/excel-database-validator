@@ -1,9 +1,9 @@
-import {Config, ErrorObject, FullNameSheetErrors, ListObject} from "../ValidatorModel";
+import {Config, ErrorObject, FullNameSheetErrors, ListObject} from "../Validator/ValidatorModel";
 import * as elements from "../../ValidatorView.private/elements";
-import {ConvertedFullNameErrors, ConvertedValidationResult} from "../ValidatorPresenter";
+import {ConvertedFullNameErrors, ConvertedValidationResult} from "../Validator/ValidatorPresenter";
 import Observer from "../../Observer";
 
-export default class ErrorsView {
+export default class ResultView {
     validationResult: ConvertedFullNameErrors | (ErrorObject[] | ListObject)[];
     config: Config;
     root: HTMLElement;
@@ -51,7 +51,7 @@ export default class ErrorsView {
 
     private async _renderSingleCellErrors(): Promise<void> {
         if ( !Array.isArray(this.validationResult) ) {
-            throw new Error('WorkBook Errors are not assignable to required format');
+            throw new Error('WorkBook Result are not assignable to required format');
         }
 
         elements.appendToElem(this.root,
@@ -64,7 +64,7 @@ export default class ErrorsView {
 
     private async _renderFullNameErrors() {
         if ( Array.isArray(this.validationResult) ) {
-            throw new Error('WorkBook Errors are not assignable to required format');
+            throw new Error('WorkBook Result are not assignable to required format');
         }
 
         const matchErrors = this.validationResult.matchErrors;

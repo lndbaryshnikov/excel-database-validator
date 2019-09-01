@@ -1,11 +1,11 @@
 import * as XLSX from "xlsx";
 import ValidatorModel, {Config, ErrorObject, FullNameSheetErrors, ListObject, ValidationResult} from "./ValidatorModel";
 import ValidatorView from "./ValidatorView";
-import ErrorsPresenter from "./Errors/ErrorsPresenter";
-import ErrorsView from "./Errors/ErrorsView";
-import LogPresenter from "./Log/LogPresenter";
-import LogModel from "./Log/LogModel";
-import LogView from "./Log/LogView";
+import ResultPresenter from "../Result/ResultPresenter";
+import ResultView from "../Result/ResultView";
+import LogPresenter from "../Log/LogPresenter";
+import LogModel from "../Log/LogModel";
+import LogView from "../Log/LogView";
 
 export interface ConvertedFullNameErrors {
     matchErrors: ErrorObject[][][] | false;
@@ -52,7 +52,7 @@ export default class ValidatorPresenter {
                 errors = result as (ErrorObject[] | ListObject)[];
             }
 
-            const errorsPresenter = new ErrorsPresenter(new ErrorsView());
+            const errorsPresenter = new ResultPresenter(new ResultView());
             const logPresenter = new LogPresenter(new LogView(), new LogModel());
 
             errorsPresenter.initialize(errors, config);

@@ -1,6 +1,6 @@
-import ValidatorModel from "./MVP/ValidatorModel";
-import ValidatorView from "./MVP/ValidatorView";
-import ValidatorPresenter from "./MVP/ValidatorPresenter";
+import ValidatorModel from "./MVP/Validator/ValidatorModel";
+import ValidatorView from "./MVP/Validator/ValidatorView";
+import ValidatorPresenter from "./MVP/Validator/ValidatorPresenter";
 
 import './styles/styles'
 
