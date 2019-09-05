@@ -1,5 +1,5 @@
-import ResultView from "./ErrorsView";
-import {ConvertedFullNameErrors, ConvertedValidationResult} from "../Validator/ValidatorPresenter";
+import ResultView from "./ResultView";
+import {ConvertedFullNameErrors} from "../Validator/ValidatorPresenter";
 import {Config, ErrorObject, ListObject} from "../Validator/ValidatorModel";
 
 export default class ResultPresenter {

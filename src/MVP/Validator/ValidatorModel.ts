@@ -107,7 +107,7 @@ export default class ValidatorModel implements  ValidateData {
         const value = !!cell ? cell.v : undefined;
         this._currentCell = {
             cell: cell,
-            value: value,
+            value: !!value ? String(value) : undefined,
             row: `${iterationRow + 1}`,
             col: `${iterationCol + 1}`
         };
@@ -120,7 +120,7 @@ export default class ValidatorModel implements  ValidateData {
     validateWorkbook(): void {
 
         this._cleanModel();
-        this._convertListsString();
+        this._convertConfig();
         //this.lists.lists = [first,...., last]: first and last inclusively
         //this.lists.lists - lists from _config, not for iteration
 
@@ -134,16 +134,16 @@ export default class ValidatorModel implements  ValidateData {
         this._config.lists.lists;
 
         if ( this._config.lists.type === 'listsCollection' ) {
-            this._config.lists.lists.forEach((currentListNumber) => {
-
-                if ( this._checkColumns(currentListNumber).result === false ) return;
+            for (let currentListNumber of this._config.lists.lists) {
 
                 const currentListIterationNumber = currentListNumber - 1;
 
                 this._setCurrentSheet(currentListIterationNumber);
 
+                if ( this._checkColumns().result === false ) return;
+
                 this._validateSheet();
-            });
+            }
         } else {
             let firstListIterationNumber: number = this._config.lists.lists[0] - 1;
             const lastListIterationNumber: number = this._config.lists.lists[this._config.lists.lists.length - 1] - 1;
@@ -157,9 +157,10 @@ export default class ValidatorModel implements  ValidateData {
 
             for (let currentListIterationNumber = firstListIterationNumber;
                  currentListIterationNumber <= lastListIterationNumber; currentListIterationNumber++) {
-                if ( this._checkColumns(currentListIterationNumber).result === false ) return;
-
                 this._setCurrentSheet(currentListIterationNumber);
+
+                if ( this._checkColumns().result === false ) return;
+
 
                 this._validateSheet();
             }
@@ -478,18 +479,18 @@ export default class ValidatorModel implements  ValidateData {
         }
     }
 
-    private  _checkColumns(listNumber: number): {result: boolean} {
+    private  _checkColumns(): {result: boolean} {
         const sheetNames = this._workbook.SheetNames;
-        const sheet = this._workbook.Sheets[sheetNames[listNumber]];
+        const sheet = this._workbook.Sheets[sheetNames[Number(this._currentSheet.number)]];
         const range: XLSX.Range = XLSX.utils.decode_range(sheet['!ref']);
 
-        const list = `list No ${listNumber}`;
+        const list = `list No ${this._currentSheet.number}`;
 
         let result: boolean = true;
         let error: false | string = false;
 
         const doesColExist = (col: number, range: XLSX.Range): boolean => {
-            return ( col >= (range.s.c + 1) && col <= (range.e.c + 1) );
+            return ( col >= (range.s.c + 1) && col <= (range.e.c) );
         };
 
         const firstColHere: boolean = doesColExist(Number(this._config.cols.firstCol), range);
@@ -537,6 +538,11 @@ export default class ValidatorModel implements  ValidateData {
             listName);
     }
 
+    private _convertConfig(): void {
+        this._convertListsString();
+        this._convertColumnsToNumbers();
+    }
+
     private _convertListsString(): void {
         //convert no whitespaces list string
         const sheetNames = this._workbook.SheetNames;
@@ -580,6 +586,15 @@ export default class ValidatorModel implements  ValidateData {
         this._config.lists = {
             lists: lists,
             type: type
+        }
+    }
+
+    private _convertColumnsToNumbers(): void {
+        this._config.cols.firstCol = String(XLSX.utils.decode_col(this._config.cols.firstCol) + 1);
+
+        if ( this._config.mode === 'fullName' && !!this._config.cols.secondCol ) {
+            this._config.cols.secondCol = String(XLSX.utils.decode_col(this._config.cols.secondCol) + 1);
+
         }
     }
 

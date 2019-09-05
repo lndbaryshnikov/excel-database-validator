@@ -98,12 +98,12 @@ export const createModeSelect = (): Elements['settingsArea']['modeSelect'] => {
 
     appendToElem(select,
         createOption('none', 'Choose...'),
-        createOption('email', 'Email Result'),
-        createOption('phone', 'Phone Number Result'),
-        createOption('site', 'Site Address Result'),
+        createOption('email', 'Email Errors'),
+        createOption('phone', 'Phone Number Errors'),
+        createOption('site', 'Site Address Errors'),
         createOption('ws', 'Whitespaces'),
-        createOption('numbers', 'Only Numbers Result'),
-        createOption('fullName', 'FullName Result'),
+        createOption('numbers', 'Only Numbers Errors'),
+        createOption('fullName', 'FullName Errors'),
         createOption('countCompanies', 'Count Companies')
     );
 
@@ -121,7 +121,7 @@ export const createColInputs = (): Elements['settingsArea']['colInputs'] => {
     const sign = create('div',
         ['class', 'sign col-inputs__sign']
     ) as HTMLDivElement;
-    sign.innerHTML = 'Type column number: ';
+    sign.innerHTML = 'Type column: ';
 
     const firstInput = create('input',
         ['class', 'col-inputs__input'],

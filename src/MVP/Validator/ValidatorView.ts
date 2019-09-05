@@ -5,7 +5,7 @@ import Observer from "../../Observer";
 import * as elements from "../../ValidatorView.private/elements"
 import {toggleElements} from "../../ValidatorView.private/toggleElements";
 import {doesHaveOnlyDigits} from "../../doesHaveOnlyDigits";
-import ResultView from "../Result/ErrorsView";
+import ResultView from "../Result/ResultView";
 import logView from "../Log/LogView";
 
 export interface Elements {
@@ -195,14 +195,14 @@ export default class ValidatorView implements  renderValidatorUI {
         if ( mode === 'fullName') {
             return ( this.elements.settingsArea.fileInput.input.files[0] &&
                 ( this.elements.settingsArea.modeSelect.select.selectedIndex !== 0 ) &&
-                ( doesHaveOnlyDigits(this.elements.settingsArea.colInputs.firstInput.value.trim()) ) &&
-                ( doesHaveOnlyDigits(this.elements.settingsArea.colInputs.secondInput.value.trim()) ) &&
+                ( /^[A-Za-z]+$/.test(this.elements.settingsArea.colInputs.firstInput.value.trim()) ) &&
+                ( /^[A-Za-z]+$/.test(this.elements.settingsArea.colInputs.secondInput.value.trim()) ) &&
                 ( this._isListNumberCorrect() )
             );
         } else {
             return ( this.elements.settingsArea.fileInput.input.files[0] &&
                 ( this.elements.settingsArea.modeSelect.select.selectedIndex !== 0 ) &&
-                ( doesHaveOnlyDigits(this.elements.settingsArea.colInputs.firstInput.value.trim()) ) &&
+                ( /^[A-Za-z]+$/.test(this.elements.settingsArea.colInputs.firstInput.value.trim()) ) &&
                 ( this._isListNumberCorrect() )
             );
         }
