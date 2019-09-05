@@ -1,3 +1,5 @@
+import removeDiacritics from "../removeDiacritics";
+
 export const isEmailValid = (trimmedEmail: string) => {
     const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
@@ -25,4 +27,12 @@ export const isOnlyNumbersValid = (trimmedNumber: string) => {
     const re = /^[0-9]+$/;
 
     return re.test(trimmedNumber);
+};
+
+export const isNameValid = (trimmedValue: string) => {
+    return /^[A-Za-z]+[A-Za-z -]+[A-Za-z]+$/.test(removeDiacritics(trimmedValue));
+};
+
+export const isCompanyNameValid = (trimmedCompanyName: string) => {
+    return /^[A-Za-z ]+$/.test(trimmedCompanyName);
 };

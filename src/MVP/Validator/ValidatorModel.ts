@@ -8,7 +8,7 @@ import {getCell} from "../../ValidatorModel.private/getCell";
 import {addPropertyToErrors} from "../../ValidatorModel.private/addPropertyToErrors";
 
 export interface Config {
-    mode: 'none' | 'email' | 'phone' | 'site' | 'ws' | 'numbers' | 'fullName' | 'countCompanies';
+    mode: 'none' | 'email' | 'phone' | 'site' | 'ws' | 'numbers' | 'fullName' | 'countCompanies' | 'companies' | 'names';
     row: string
     cols: {
         firstCol: string;
@@ -309,11 +309,13 @@ export default class ValidatorModel implements  ValidateData {
 
         const mode = this._config.mode;
 
-        if ( mode === "email"   )  isValid = validators.isEmailValid(trimmedCellValue);
-        if ( mode === "phone"   )  isValid = validators.isPhoneNumberValid(trimmedCellValue);
-        if ( mode === "site"    )  isValid = validators.isSiteAddressValid(trimmedCellValue);
-        if ( mode === "numbers" )  isValid = validators.isOnlyNumbersValid(trimmedCellValue);
-        if ( mode === "ws"      )  isValid = true;
+        if ( mode === "email"     )  isValid = validators.isEmailValid(trimmedCellValue);
+        if ( mode === "phone"     )  isValid = validators.isPhoneNumberValid(trimmedCellValue);
+        if ( mode === "site"      )  isValid = validators.isSiteAddressValid(trimmedCellValue);
+        if ( mode === "numbers"   )  isValid = validators.isOnlyNumbersValid(trimmedCellValue);
+        if ( mode === "names"     )  isValid = validators.isNameValid(trimmedCellValue);
+        if ( mode === "companies" )  isValid = validators.isCompanyNameValid(trimmedCellValue);
+        if ( mode === "ws"        )  isValid = true;
 
         if ( doesHaveWhitespaces(this._currentCell.value) || !isValid) {
             if (!isValid && doesHaveWhitespaces(this._currentCell.value)) {

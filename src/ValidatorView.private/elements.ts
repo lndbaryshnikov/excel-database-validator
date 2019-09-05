@@ -98,13 +98,15 @@ export const createModeSelect = (): Elements['settingsArea']['modeSelect'] => {
 
     appendToElem(select,
         createOption('none', 'Choose...'),
-        createOption('email', 'Email Errors'),
-        createOption('phone', 'Phone Number Errors'),
-        createOption('site', 'Site Address Errors'),
+        createOption('email', 'Email errors'),
+        createOption('phone', 'Phone number errors'),
+        createOption('site', 'Site address errors'),
         createOption('ws', 'Whitespaces'),
-        createOption('numbers', 'Only Numbers Errors'),
-        createOption('fullName', 'FullName Errors'),
-        createOption('countCompanies', 'Count Companies')
+        createOption('numbers', 'Only Numbers'),
+        createOption('fullName', 'FullName errors'),
+        createOption('names', 'Names Errors'),
+        createOption('companies', 'Companies errors'),
+        createOption('countCompanies', 'Count companies'),
     );
 
     appendToElem(wrapper, sign, select);
