@@ -7,7 +7,7 @@ import doesHaveWhitespaces from "../../doesHaveWhitespaces";
 import {getCell} from "../../ValidatorModel.private/getCell";
 import {addPropertyToErrors} from "../../ValidatorModel.private/addPropertyToErrors";
 
-export interface Config {
+export interface  Config {
     mode: 'none' | 'email' | 'phone' | 'site' | 'ws' | 'numbers' | 'fullName' | 'countCompanies' | 'companies' | 'names';
     row: string
     cols: {
@@ -160,7 +160,6 @@ export default class ValidatorModel implements  ValidateData {
                 this._setCurrentSheet(currentListIterationNumber);
 
                 if ( this._checkColumns().result === false ) return;
-
 
                 this._validateSheet();
             }
@@ -483,7 +482,7 @@ export default class ValidatorModel implements  ValidateData {
 
     private  _checkColumns(): {result: boolean} {
         const sheetNames = this._workbook.SheetNames;
-        const sheet = this._workbook.Sheets[sheetNames[Number(this._currentSheet.number)]];
+        const sheet = this._workbook.Sheets[sheetNames[Number(this._currentSheet.number) - 1]];
         const range: XLSX.Range = XLSX.utils.decode_range(sheet['!ref']);
 
         const list = `list No ${this._currentSheet.number}`;
