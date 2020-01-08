@@ -1,13 +1,13 @@
 import {Elements} from "../MVP/Validator/ValidatorView";
 import {selfDownloadFile} from "./selfDownLoadFile";
 
-export const appendToElem = (root: HTMLElement, ...elements: HTMLElement[]): void => {
+const appendToElem = (root: HTMLElement, ...elements: HTMLElement[]): void => {
     elements.forEach(element => {
         root.append(element);
     });
 };
 
-export const create = (name: string, ...properties: string[][]): HTMLElement => {
+const create = (name: string, ...properties: string[][]): HTMLElement => {
     const element = document.createElement(name);
 
     properties.forEach((property: string[]) => {
@@ -17,13 +17,13 @@ export const create = (name: string, ...properties: string[][]): HTMLElement => 
     return element;
 };
 
-export const createDivWithClass = (className: string): HTMLDivElement => {
+const createDivWithClass = (className: string): HTMLDivElement => {
     return create('div',
         ['class', className]
     ) as HTMLDivElement;
 };
 
-export const createHeaderArea = (): Elements['headerArea'] => {
+const createHeaderArea = (): Elements['headerArea'] => {
     const wrapper = createDivWithClass('header-area__wrapper');
 
     const name = create('div',
@@ -39,7 +39,7 @@ export const createHeaderArea = (): Elements['headerArea'] => {
     };
 };
 
-export const createCustomFileInput = (): Elements['settingsArea']['fileInput'] => {
+const createCustomFileInput = (type: "main" | "second" = "main"): Elements['settingsArea']['mainFileInput'] => {
     const wrapper = createDivWithClass('file-input__wrapper');
 
     const input = create('input',
@@ -54,7 +54,7 @@ export const createCustomFileInput = (): Elements['settingsArea']['fileInput'] =
         ['for', 'file-input__input']
     ) as HTMLLabelElement;
 
-    const text = 'Choose a file (only .xlsx)...';
+    const text = type === "main" ? "Choose a file (only .xlsx)..." : "Choose second file (only .xlsx)";
 
     label.innerHTML = text;
 
@@ -73,7 +73,7 @@ export const createCustomFileInput = (): Elements['settingsArea']['fileInput'] =
     };
 };
 
-export const createModeSelect = (): Elements['settingsArea']['modeSelect'] => {
+const createModeSelect = (): Elements['settingsArea']['modeSelect'] => {
     const wrapper = createDivWithClass('mode-select__wrapper');
 
     const sign = create('div',
@@ -107,6 +107,7 @@ export const createModeSelect = (): Elements['settingsArea']['modeSelect'] => {
         createOption('names', 'Names Errors'),
         createOption('companies', 'Companies errors'),
         createOption('countCompanies', 'Count companies'),
+        createOption('matchingCompanies', 'Matching companies errors')
     );
 
     appendToElem(wrapper, sign, select);
@@ -117,7 +118,7 @@ export const createModeSelect = (): Elements['settingsArea']['modeSelect'] => {
     }
 };
 
-export const createColInputs = (): Elements['settingsArea']['colInputs'] => {
+const createColInputs = (): Elements['settingsArea']['colInputs'] => {
     const wrapper = createDivWithClass('col-inputs__wrapper');
 
     const sign = create('div',
@@ -146,7 +147,7 @@ export const createColInputs = (): Elements['settingsArea']['colInputs'] => {
     }
 };
 
-export const createListInput = (): Elements['settingsArea']['listInput'] => {
+const createListInput = (): Elements['settingsArea']['listInput'] => {
     const wrapper = createDivWithClass('lists-input__wrapper');
 
     const sign = create('div',
@@ -167,7 +168,7 @@ export const createListInput = (): Elements['settingsArea']['listInput'] => {
     }
 };
 
-export const createDisabledRunButton = (): Elements['settingsArea']['runButton'] => {
+const createDisabledRunButton = (): Elements['settingsArea']['runButton'] => {
     const runButton = create('button',
         ['class', 'button run-button'],
         ['disabled', 'disabled']
@@ -178,17 +179,19 @@ export const createDisabledRunButton = (): Elements['settingsArea']['runButton']
     return runButton;
 };
 
-export const createSettingsArea = (): Elements['settingsArea'] => {
+const createSettingsArea = (): Elements['settingsArea'] => {
     const wrapper = createDivWithClass('settings-wrapper');
 
-    const fileInput = createCustomFileInput();
+    const mainFileInput = createCustomFileInput();
+    const secondFileInput = createCustomFileInput("second");
     const modeSelect = createModeSelect();
     const colInputs = createColInputs();
     const listInput = createListInput();
     const runButton = createDisabledRunButton();
 
     appendToElem(wrapper,
-        fileInput.wrapper,
+        mainFileInput.wrapper,
+        secondFileInput.wrapper,
         modeSelect.wrapper,
         colInputs.wrapper,
         listInput.wrapper,
@@ -197,7 +200,8 @@ export const createSettingsArea = (): Elements['settingsArea'] => {
 
     return {
         wrapper: wrapper,
-        fileInput: fileInput,
+        mainFileInput: mainFileInput,
+        secondFileInput: secondFileInput,
         modeSelect: modeSelect,
         colInputs: colInputs,
         listInput: listInput,
@@ -205,7 +209,7 @@ export const createSettingsArea = (): Elements['settingsArea'] => {
     };
 };
 
-export const createNoErrorsMessage = (): Elements['noErrorsMessage'] => {
+const createNoErrorsMessage = (): Elements['noErrorsMessage'] => {
     const message = create('div',
         ['class', 'no-errors-message']
     ) as HTMLDivElement;
@@ -215,7 +219,7 @@ export const createNoErrorsMessage = (): Elements['noErrorsMessage'] => {
     return message;
 };
 
-export const createAnotherErrorsSign = () => {
+const createAnotherErrorsSign = () => {
     const sign = create('div',
         ['class', 'errors-area__another-errors-sign']
     ) as HTMLDivElement;
@@ -224,7 +228,7 @@ export const createAnotherErrorsSign = () => {
     return sign;
 };
 
-export const createErrorsArea = (): {wrapper: HTMLDivElement, anotherErrorsSign: HTMLDivElement} => {
+const createErrorsArea = (): {wrapper: HTMLDivElement, anotherErrorsSign: HTMLDivElement} => {
     const wrapper = createDivWithClass('error-area__wrapper');
 
     const sign = create('div',
@@ -243,7 +247,7 @@ export const createErrorsArea = (): {wrapper: HTMLDivElement, anotherErrorsSign:
     };
 };
 
-export const createListErrorsBlock = (nameOfList: string, numberOfList: string | number)
+const createListErrorsBlock = (nameOfList: string, numberOfList: string | number)
     : {wrapper: HTMLDivElement, table: HTMLTableElement} => {
 
     const wrapper = createDivWithClass('list-errors__wrapper');
@@ -288,7 +292,7 @@ export const createListErrorsBlock = (nameOfList: string, numberOfList: string |
     }
 };
 
-export const createRowForErrorsTable = (number: string | number | null, row: string | number,
+const createRowForErrorsTable = (number: string | number | null, row: string | number,
                                  value: string, error: string): HTMLTableRowElement => {
     const tableRow = create('tr',
         ['class', 'list-errors__table-row'],
@@ -316,7 +320,7 @@ export const createRowForErrorsTable = (number: string | number | null, row: str
     return tableRow;
 };
 
-export const createLogButton = (text: string): HTMLButtonElement => {
+const createLogButton = (text: string): HTMLButtonElement => {
     const button = create('button',
         ['class', 'button log-download-button']
     ) as HTMLButtonElement;
@@ -328,4 +332,23 @@ export const createLogButton = (text: string): HTMLButtonElement => {
     });
 
     return button;
+};
+
+export {
+    appendToElem,
+    create,
+    createDivWithClass,
+    createHeaderArea,
+    createCustomFileInput,
+    createModeSelect,
+    createColInputs,
+    createListInput,
+    createDisabledRunButton,
+    createSettingsArea,
+    createNoErrorsMessage,
+    createAnotherErrorsSign,
+    createErrorsArea,
+    createListErrorsBlock,
+    createRowForErrorsTable,
+    createLogButton
 };
