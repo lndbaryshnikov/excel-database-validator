@@ -33,7 +33,7 @@
     "typescript": "^3.5.3",
     "webpack": "^4.39.1",
     "webpack-cli": "^3.3.6",
-    "xlsx": "^0.15.0"
+    "xlsx": "^0.17.0"
   },
   "dependencies": {}
 }
